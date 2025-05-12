@@ -9,7 +9,7 @@ This repository implements a quantum chemistry eigensolver for simulating small 
 
 The core of this implementation is the **Variational Quantum Eigensolver (VQE)**, a hybrid quantum-classical algorithm that approximates the ground state energy of quantum systems. For molecular systems, this energy is determined by the electronic Hamiltonian:
 
-$$\hat{H}_{\text{elec}} = \sum_{pq} h_{pq} a_p^\dagger a_q + \frac{1}{2}\sum_{pqrs} h_{pqrs} a_p^\dagger a_q^\dagger a_r a_s$$
+![Hamiltonian equation](https://render.githubusercontent.com/render/math?math=\hat{H}_{\text{elec}}%20=%20\sum_{pq}%20h_{pq}%20a_p^\dagger%20a_q%20+%20\frac{1}{2}\sum_{pqrs}%20h_{pqrs}%20a_p^\dagger%20a_q^\dagger%20a_r%20a_s)
 
 where $a_p^\dagger$ and $a_q$ are fermionic creation and annihilation operators, while $h_{pq}$ and $h_{pqrs}$ represent one- and two-electron integrals.
 
