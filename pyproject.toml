@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools", "wheel"] 
+
+[tool.setuptools]
+packages = ["quantum_chemistry"]
+
+[project]
+name = "quantum_chemistry"
+version = "0.0.1"
+authors = [{name = "Algolab"}]
+readme = "README.md"
+dependencies = [
+    "numpy == 2.2.5",
+    "scipy == 1.15.2",
+    "qiskit == 2.0.0",
+    "qiskit_aer == 0.17.0",
+    "qiskit_ibm_runtime == 0.38.0",
+    "matplotlib == 3.10.1",
+    "ipykernel == 6.29.5",
+    "pytest == 8.3.5",
+    "pylatexenc == 2.10",
+]
