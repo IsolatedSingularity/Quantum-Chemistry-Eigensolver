@@ -1,5 +1,5 @@
 # Quantum-Chemistry-Eigensolver
-###### Developed by Maxime from [Institut Quantique](https://www.usherbrooke.ca/iq/).
+###### Based on the quantum chemistry workshop notebooks created by [Maxime Dion](https://www.usherbrooke.ca/iq/en/news-events/news/details/54588) at the [Institut Quantique](https://www.usherbrooke.ca/iq/).
 
 ![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
 
@@ -9,9 +9,7 @@ This repository implements a quantum chemistry eigensolver for simulating small 
 
 The core of this implementation is the **Variational Quantum Eigensolver (VQE)**, a hybrid quantum-classical algorithm that approximates the ground state energy of quantum systems. For molecular systems, this energy is determined by the electronic Hamiltonian:
 
-$$
-\hat{H}_{\text{elec}} = \sum_{pq} h_{pq} a_p^\dagger a_q + \frac{1}{2}\sum_{pqrs} h_{pqrs} a_p^\dagger a_q^\dagger a_r a_s
-$$
+$$\hat{H}_{\text{elec}} = \sum_{pq} h_{pq} a_p^\dagger a_q + \frac{1}{2}\sum_{pqrs} h_{pqrs} a_p^\dagger a_q^\dagger a_r a_s$$
 
 where $a_p^\dagger$ and $a_q$ are fermionic creation and annihilation operators, while $h_{pq}$ and $h_{pqrs}$ represent one- and two-electron integrals.
 
@@ -21,13 +19,9 @@ where $a_p^\dagger$ and $a_q$ are fermionic creation and annihilation operators,
 
 Quantum chemistry calculations begin with mapping the molecular Hamiltonian to a qubit representation. The most common approach uses the Jordan-Wigner transformation, which converts fermionic operators to Pauli operators:
 
-$$
-a_j^{\dagger} \rightarrow \frac{1}{2}\left(X_j-iY_j\right) \prod_{k<j} Z_k
-$$
+$$a_j^{\dagger} \rightarrow \frac{1}{2}\left(X_j-iY_j\right) \prod_{k<j} Z_k$$
 
-$$
-a_j \rightarrow \frac{1}{2}\left(X_j+iY_j\right) \prod_{k<j} Z_k
-$$
+$$a_j \rightarrow \frac{1}{2}\left(X_j+iY_j\right) \prod_{k<j} Z_k$$
 
 For the H₂ molecule with minimal basis, we need 4 qubits to represent the system's 4 spin orbitals. After mapping and applying symmetries, the qubit Hamiltonian can be expressed as a sum of tensor products of Pauli operators.
 
@@ -294,9 +288,9 @@ The animation demonstrates how the H₂ molecule's energy changes as the bond di
 
 ## Next Steps
 
-- [ ] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
+- [x] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
 - [ ] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
-- [ ] Incorporate noise models to simulate realistic quantum hardware performance.
+- [x] Incorporate noise models to simulate realistic quantum hardware performance.
 - [ ] Implement quantum subspace expansion techniques to improve accuracy of excited state calculations.
 - [ ] Add support for calculating molecular properties beyond the ground state energy (dipole moments, forces, etc.).
 
