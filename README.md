@@ -9,7 +9,10 @@ This repository implements a quantum chemistry eigensolver for simulating small 
 
 The core of this implementation is the **Variational Quantum Eigensolver (VQE)**, a hybrid quantum-classical algorithm that approximates the ground state energy of quantum systems. For molecular systems, this energy is determined by the electronic Hamiltonian:
 
-![Hamiltonian equation](https://render.githubusercontent.com/render/math?math=\hat{H}_{\text{elec}}%20=%20\sum_{pq}%20h_{pq}%20a_p^\dagger%20a_q%20+%20\frac{1}{2}\sum_{pqrs}%20h_{pqrs}%20a_p^\dagger%20a_q^\dagger%20a_r%20a_s)
+$$
+\hat{H}_{\mathrm{elec}} = \sum_{p,q} h_{pq} a_p^\dagger a_q
+    + \tfrac{1}{2} \sum_{p,q,r,s} h_{pqrs} a_p^\dagger a_q^\dagger a_r a_s
+$$
 
 where $a_p^\dagger$ and $a_q$ are fermionic creation and annihilation operators, while $h_{pq}$ and $h_{pqrs}$ represent one- and two-electron integrals.
 
@@ -17,13 +20,14 @@ where $a_p^\dagger$ and $a_q$ are fermionic creation and annihilation operators,
 
 ## Theoretical Background
 
-Quantum chemistry calculations begin with mapping the molecular Hamiltonian to a qubit representation. The most common approach uses the Jordan-Wigner transformation, which converts fermionic operators to Pauli operators:
+Quantum chemistry calculations begin with mapping the molecular Hamiltonian to a qubit representation. The most common approach uses the Jordan–Wigner transformation, which converts fermionic operators to Pauli operators:
 
-$$a_j^{\dagger} \rightarrow \frac{1}{2}\left(X_j-iY_j\right) \prod_{k<j} Z_k$$
+$$
+ a_j^{\dagger} \rightarrow \tfrac12\bigl(X_j - iY_j\bigr) \prod_{k<j} Z_k, \quad
+ a_j \rightarrow \tfrac12\bigl(X_j + iY_j\bigr) \prod_{k<j} Z_k
+$$
 
-$$a_j \rightarrow \frac{1}{2}\left(X_j+iY_j\right) \prod_{k<j} Z_k$$
-
-For the H₂ molecule with minimal basis, we need 4 qubits to represent the system's 4 spin orbitals. After mapping and applying symmetries, the qubit Hamiltonian can be expressed as a sum of tensor products of Pauli operators.
+For the H₂ molecule with a minimal basis, we need 4 qubits to represent the system's 4 spin orbitals. After mapping and applying symmetries, the qubit Hamiltonian can be expressed as a sum of tensor products of Pauli operators.
 
 The VQE algorithm then works by:
 1. Preparing a parameterized quantum state (ansatz) on a quantum computer
@@ -288,9 +292,9 @@ The animation demonstrates how the H₂ molecule's energy changes as the bond di
 
 ## Next Steps
 
-- [x] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
-- [x] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
-- [ ] Incorporate noise models to simulate realistic quantum hardware performance.
+- [ ] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
+- [ ] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
+- [x] Incorporate noise models to simulate realistic quantum hardware performance.
 - [ ] Implement quantum subspace expansion techniques to improve accuracy of excited state calculations.
 - [ ] Add support for calculating molecular properties beyond the ground state energy (dipole moments, forces, etc.).
 
