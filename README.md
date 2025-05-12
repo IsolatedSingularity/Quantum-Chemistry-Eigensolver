@@ -289,8 +289,8 @@ The animation demonstrates how the H₂ molecule's energy changes as the bond di
 ## Next Steps
 
 - [x] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
-- [ ] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
-- [x] Incorporate noise models to simulate realistic quantum hardware performance.
+- [x] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
+- [ ] Incorporate noise models to simulate realistic quantum hardware performance.
 - [ ] Implement quantum subspace expansion techniques to improve accuracy of excited state calculations.
 - [ ] Add support for calculating molecular properties beyond the ground state energy (dipole moments, forces, etc.).
 
