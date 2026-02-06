@@ -152,4 +152,5 @@ This visualization displays the VQE optimization landscape with a 2D parameter s
 > For a more detailed explanation of the VQE algorithm and the Jordan-Wigner transformation, see the PDF in the resources directory.
 
 > [!NOTE]
-> This implementation serves as an educational resource for understanding quantum algorithms in chemistry applications rather than as a production-level quantum chemistry tool.
+> This implementation serves as an educational resource for understanding quantum algorithms in chemistry applications rather than as a production-level quantum chemistry tool..
+
