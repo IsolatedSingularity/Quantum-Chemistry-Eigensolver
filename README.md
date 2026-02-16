@@ -15,6 +15,10 @@ where $a_p^\dagger$ and $a_q$ are fermionic creation and annihilation operators,
 
 **Goal:** Simulate the H₂ molecule's energy landscape at various bond distances using the VQE algorithm, visualize molecular orbitals, and demonstrate the convergence of the optimization process toward the ground state energy.
 
+<p align="center">
+  <img src="./visualization/apple.gif?raw=true" alt="apple" width="52" height="50" />
+</p>
+
 ## Theoretical Background
 
 Quantum chemistry calculations begin with mapping the molecular Hamiltonian to a qubit representation. The most common approach uses the Jordan–Wigner transformation, which converts fermionic operators to Pauli operators:
