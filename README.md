@@ -1,4 +1,10 @@
 # Quantum-Chemistry-Eigensolver
+
+[![CI](https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver/actions/workflows/ci.yml/badge.svg)](https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver/actions/workflows/ci.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![pip install](https://img.shields.io/badge/install-pip%20install%20--e%20.%5Bdev%5D-brightgreen)](pyproject.toml)
+
 ###### Based on the quantum chemistry workshop notebooks created by [Maxime Dion](https://www.usherbrooke.ca/iq/en/news-events/news/details/54588) at the [Institut Quantique](https://www.usherbrooke.ca/iq/).
 
 ![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
@@ -138,6 +144,33 @@ The animation demonstrates how the H₂ molecule's energy changes as the bond di
 
 This visualization displays the VQE optimization landscape with a 2D parameter space contour plot (left) showing how energy varies with circuit parameters θ₁ and θ₂. The optimization trajectory is traced from initial parameters (dark) to final converged values (light), demonstrating the classical optimizer's path through the energy surface. The right panel shows how the molecular energy curves improve with each iteration, converging toward the true ground state energy across all bond distances.
 
+## Installation
+
+```bash
+# Clone and install
+git clone https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver.git
+cd Quantum-Chemistry-Eigensolver
+pip install -e ".[dev]"
+
+# Run the test suite
+pytest
+```
+
+### CLI Entry Points
+
+| Command | Description |
+|---|---|
+| `qce-dissociation` | Run VQE across all H₂ bond distances and plot the dissociation curve |
+| `qce-visualize` | Generate molecular orbital and VQE energy visualizations |
+
+```bash
+# Example: compute dissociation curve and save the plot
+qce-dissociation --shots 10000 -o dissociation.png
+
+# Generate all visualizations
+qce-visualize --which all
+```
+
 ## Caveats
 
 - **Ansatz Limitations**: The simple circuits used in this implementation may not capture all the relevant physics for larger molecules. More sophisticated ansatz designs are needed for scaling beyond H₂.
@@ -153,8 +186,8 @@ This visualization displays the VQE optimization landscape with a 2D parameter s
 - [ ] Add support for calculating molecular properties beyond the ground state energy (dipole moments, forces, etc.).
 
 > [!TIP]
-> For a more detailed explanation of the VQE algorithm and the Jordan-Wigner transformation, see the PDF in the resources directory.
+> Step-by-step tutorial scripts live in `examples/` — run `tutorial_1_mapping.py` and `tutorial_2_estimation.py` to walk through the full pipeline.
 
 > [!NOTE]
-> This implementation serves as an educational resource for understanding quantum algorithms in chemistry applications rather than as a production-level quantum chemistry tool..
+> This implementation serves as an educational resource for understanding quantum algorithms in chemistry applications rather than as a production-level quantum chemistry tool.
 
