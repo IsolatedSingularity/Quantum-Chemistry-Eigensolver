@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from numbers import Number
-from typing import Self, Union
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 from numpy.typing import NDArray
