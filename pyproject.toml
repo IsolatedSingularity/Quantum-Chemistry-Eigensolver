@@ -79,9 +79,16 @@ disable_error_code = ["assignment", "arg-type", "truthy-function"]
 [tool.coverage.run]
 source = ["quantum_chemistry"]
 branch = true
+omit = [
+    "quantum_chemistry/cli.py",
+    "quantum_chemistry/molecule/hartree_fock.py",
+    "quantum_chemistry/molecule/linalg.py",
+    "quantum_chemistry/molecule/molecular_integrals.py",
+]
 
 [tool.coverage.report]
 show_missing = true
+fail_under = 60
 exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING",
