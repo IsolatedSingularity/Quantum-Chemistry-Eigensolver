@@ -136,16 +136,7 @@ def create_vqe_energy_curves_visualization(save_path):
     ax2.legend(fontsize=10, loc="upper right")
     ax2.grid(True, alpha=0.3)
 
-    plt.subplots_adjust(left=0.08, right=0.95, top=0.90, bottom=0.15)
-    fig.text(
-        0.5,
-        0.03,
-        "Left: energy landscape for 8 bond distances.  Right: exact diagonalization vs single-parameter VQE.",
-        fontsize=11,
-        ha="center",
-        va="center",
-        bbox=dict(facecolor="white", alpha=0.9, boxstyle="round,pad=0.5", edgecolor="gray"),
-    )
+    plt.subplots_adjust(left=0.08, right=0.95, top=0.90, bottom=0.10)
 
     print(f"Saving VQE energy curves visualization to {save_path}")
     plt.savefig(save_path, dpi=300)
