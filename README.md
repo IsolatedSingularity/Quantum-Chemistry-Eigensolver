@@ -27,17 +27,6 @@ Design decisions:
   <img src="./visualization/apple.gif?raw=true" alt="apple" width="52" height="50" />
 </p>
 
-<details>
-<summary><h2>Theoretical Background</h2></summary>
-
-The molecular Hamiltonian is mapped to qubit operators via the Jordan-Wigner transformation:
-
-$a_j^{\dagger} \rightarrow \tfrac12\bigl(X_j - iY_j\bigr) \prod_{k<j} Z_k, \quad a_j \rightarrow \tfrac12\bigl(X_j + iY_j\bigr) \prod_{k<j} Z_k$
-
-For H₂ in a minimal basis, 2 spatial orbitals $\times$ 2 spins = 4 spin-orbitals, each mapped to one qubit. The VQE loop prepares a parameterized ansatz, measures the Hamiltonian expectation value, and uses a classical optimizer to minimize energy until convergence.
-
-</details>
-
 ## Code Functionality
 
 ### 1. Molecule and Integrals
@@ -85,22 +74,6 @@ def h2_ansatz_circuit():
     return varform
 ```
 
-## Results
-
-Ground state energy at equilibrium: **-1.137 Ha** (within $10^{-6}$ Ha of exact diagonalization). 70 pytest tests across 5 modules, 87% line coverage, type-checked with mypy.
-
-Bonding and antibonding molecular orbitals of H₂, computed from one-electron integrals in the STO-3G basis.
-
-![H2 Molecular Orbitals](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_molecular_orbitals.png?raw=true)
-
-Bond-length sweep from 0.3 to 1.95 Å showing the H₂ wavefunction transitioning from a compact bonding state to separated atoms.
-
-![H2 Dissociation Animation](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_dissociation.gif?raw=true)
-
-VQE energy landscape across 8 sampled bond distances (left) and the full dissociation curve compared against exact diagonalization (right).
-
-![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
-
 ## Installation
 
 ```bash
@@ -140,6 +113,63 @@ To add a new molecule, generate spin-orbital integrals with PySCF (see `usage/`)
 | `examples/` | Step-by-step tutorials for mapping and estimation |
 | `visualization/` | Matplotlib visualizations and animations |
 | `h2_data/` | Pre-computed H₂ spin-orbital integrals (34 bond distances) |
+
+<details>
+<summary><h2>Theoretical Background</h2></summary>
+
+### Second Quantization and the Jordan-Wigner Mapping
+
+The electronic Hamiltonian in second quantization is
+
+$$\hat{H} = \sum_{p,q} h_{pq}\, a_p^\dagger a_q \;+\; \frac{1}{2}\sum_{p,q,r,s} h_{pqrs}\, a_p^\dagger a_q^\dagger a_r a_s \;+\; E_{\text{nuc}}$$
+
+where $h_{pq}$ and $h_{pqrs}$ are one- and two-electron integrals computed in the STO-3G basis and $E_{\text{nuc}}$ is the nuclear repulsion energy. For H₂, 2 spatial orbitals $\times$ 2 spins = 4 spin-orbitals, each mapped to one qubit via the Jordan-Wigner transformation:
+
+$$a_j^{\dagger} \rightarrow \tfrac12\bigl(X_j - iY_j\bigr) \prod_{k<j} Z_k, \qquad a_j \rightarrow \tfrac12\bigl(X_j + iY_j\bigr) \prod_{k<j} Z_k$$
+
+The Z-string enforces fermionic antisymmetry. After substitution and simplification, the 4-qubit Hamiltonian reduces to a weighted sum of Pauli strings that can be measured on a quantum device.
+
+### Variational Quantum Eigensolver
+
+VQE exploits the variational principle: for any trial state $|\psi(\theta)\rangle$, the expectation value is an upper bound on the true ground state energy,
+
+$$E(\theta) = \langle\psi(\theta)|\,\hat{H}\,|\psi(\theta)\rangle \;\geq\; E_0$$
+
+The classical optimizer tunes $\theta$ to minimize $E(\theta)$. Gradients are computed with the parameter-shift rule,
+
+$$\frac{\partial E}{\partial \theta} = \frac{1}{2}\Bigl[E\!\bigl(\theta + \tfrac{\pi}{2}\bigr) - E\!\bigl(\theta - \tfrac{\pi}{2}\bigr)\Bigr]$$
+
+which requires only two additional circuit evaluations per parameter and is exact for gates of the form $e^{-i\theta G/2}$.
+
+### Ansatz Design
+
+The ansatz prepares the Hartree-Fock reference $|0101\rangle$ (2 electrons in the lowest spin-orbitals), then applies a CNOT staircase that compiles the double excitation $a_2^\dagger a_3^\dagger a_1 a_0$ into a single $R_y(\theta)$ rotation. The resulting state,
+
+$$|\psi(\theta)\rangle = \cos(\theta/2)\,|0101\rangle + \sin(\theta/2)\,|1010\rangle$$
+
+spans the two-dimensional subspace of particle-number-conserving configurations and is exact for H₂ in a minimal basis.
+
+### Measurement Reduction
+
+Each Pauli string in the Hamiltonian must be measured independently unless it commutes qubitwise with other strings. Two Pauli operators $P_a$ and $P_b$ are qubitwise commuting (QWC) when $[\sigma_i^{(a)},\, \sigma_i^{(b)}] = 0$ for every qubit $i$. Grouping QWC-compatible terms lets multiple expectation values share a single measurement circuit, reducing the total number of circuits from one per Pauli string to one per QWC group.
+
+</details>
+
+## Results
+
+Ground state energy at equilibrium: **-1.137 Ha** (within $10^{-6}$ Ha of exact diagonalization). 70 pytest tests across 5 modules, 87% line coverage, type-checked with mypy.
+
+Bonding and antibonding molecular orbitals of H₂, computed from one-electron integrals in the STO-3G basis.
+
+![H2 Molecular Orbitals](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_molecular_orbitals.png?raw=true)
+
+Bond-length sweep from 0.3 to 1.95 Å showing the H₂ wavefunction transitioning from a compact bonding state to separated atoms.
+
+![H2 Dissociation Animation](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_dissociation.gif?raw=true)
+
+VQE energy landscape across 8 sampled bond distances (left) and the full dissociation curve compared against exact diagonalization (right).
+
+![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
 
 ## Next Steps
 
