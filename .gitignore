@@ -30,3 +30,5 @@ Thumbs.db
 .pytest_cache/
 htmlcov/
 .coverage
+
+Jenova/
