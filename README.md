@@ -1,5 +1,5 @@
 # Quantum-Chemistry-Eigensolver
-*A from-scratch variational quantum eigensolver for H₂ dissociation, built on Qiskit 2.0 without Qiskit Nature.*
+###### A from-scratch variational quantum eigensolver for H₂ dissociation, built on Qiskit 2.0 without Qiskit Nature.
 
 <p align="center">
   <a href="https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/IsolatedSingularity/Quantum-Chemistry-Eigensolver/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
@@ -19,7 +19,7 @@ This repository implements a from-scratch **Variational Quantum Eigensolver (VQE
 **Goal:** Compute the H₂ dissociation curve at 34 bond distances using a from-scratch VQE pipeline, and validate against exact diagonalization.
 
 Design decisions:
-- **No Qiskit Nature dependency.** Every component is built from scratch: Pauli algebra engine, Jordan-Wigner mapper, Hartree-Fock solver, QWC measurement grouping.
+- **No Qiskit Nature dependency.** Every component is built from scratch: Pauli algebra engine (symplectic bit encoding, vectorized phase computation), Jordan-Wigner mapper, Hartree-Fock solver, QWC measurement grouping.
 - **Analytic gradients** via the parameter-shift rule instead of finite differences.
 - **Typed Python** with mypy in CI, ruff for linting, and 70 pytest tests across 5 modules.
 
@@ -27,53 +27,16 @@ Design decisions:
   <img src="./visualization/apple.gif?raw=true" alt="apple" width="52" height="50" />
 </p>
 
-## Installation
-
-```bash
-# Clone and install
-git clone https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver.git
-cd Quantum-Chemistry-Eigensolver
-pip install -e ".[dev]"
-
-# Run the test suite
-pytest
-```
-
-### CLI Entry Points
-
-| Command | Description |
-|---|---|
-| `qce-dissociation` | Run VQE across all H₂ bond distances and plot the dissociation curve |
-| `qce-visualize` | Generate molecular orbital and VQE energy visualizations |
-
-```bash
-# Example: compute dissociation curve and save the plot
-qce-dissociation --shots 10000 -o dissociation.png
-
-# Generate all visualizations
-qce-visualize --which all
-```
-
-To add a new molecule, generate spin-orbital integrals with PySCF (see `usage/`) and pass the data directory to `qce-dissociation --data-path`.
-
-## Project Structure
-
-| Directory | Purpose |
-|---|---|
-| `quantum_chemistry/` | Core library: Pauli algebra, Jordan-Wigner mapping, estimation, VQE |
-| `quantum_chemistry/molecule/` | Molecular integrals, Hartree-Fock solver (RHF + UHF), linear algebra |
-| `tests/` | 70 pytest tests (unit, integration, end-to-end VQE) |
-| `examples/` | Step-by-step tutorials for mapping and estimation |
-| `visualization/` | Matplotlib visualizations and animations |
-| `h2_data/` | Pre-computed H₂ spin-orbital integrals (34 bond distances) |
-
-## Theoretical Background
+<details>
+<summary><h2>Theoretical Background</h2></summary>
 
 The molecular Hamiltonian is mapped to qubit operators via the Jordan-Wigner transformation:
 
 $a_j^{\dagger} \rightarrow \tfrac12\bigl(X_j - iY_j\bigr) \prod_{k<j} Z_k, \quad a_j \rightarrow \tfrac12\bigl(X_j + iY_j\bigr) \prod_{k<j} Z_k$
 
-For H₂ in a minimal basis, 4 qubits represent 4 spin orbitals. The VQE loop prepares a parameterized ansatz, measures the Hamiltonian expectation value, and uses a classical optimizer to minimize energy until convergence.
+For H₂ in a minimal basis, 2 spatial orbitals $\times$ 2 spins = 4 spin-orbitals, each mapped to one qubit. The VQE loop prepares a parameterized ansatz, measures the Hamiltonian expectation value, and uses a classical optimizer to minimize energy until convergence.
+
+</details>
 
 ## Code Functionality
 
@@ -126,11 +89,57 @@ def h2_ansatz_circuit():
 
 Ground state energy at equilibrium: **-1.137 Ha** (within $10^{-6}$ Ha of exact diagonalization). 70 pytest tests across 5 modules, 87% line coverage, type-checked with mypy.
 
+Bonding and antibonding molecular orbitals of H₂, computed from one-electron integrals in the STO-3G basis.
+
 ![H2 Molecular Orbitals](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_molecular_orbitals.png?raw=true)
+
+Bond-length sweep from 0.3 to 1.95 Å showing the H₂ wavefunction transitioning from a compact bonding state to separated atoms.
 
 ![H2 Dissociation Animation](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_dissociation.gif?raw=true)
 
+VQE energy landscape across 8 sampled bond distances (left) and the full dissociation curve compared against exact diagonalization (right).
+
 ![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
+
+## Installation
+
+```bash
+# Clone and install
+git clone https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver.git
+cd Quantum-Chemistry-Eigensolver
+pip install -e ".[dev]"
+
+# Run the test suite
+pytest
+```
+
+### CLI Entry Points
+
+| Command | Description |
+|---|---|
+| `qce-dissociation` | Run VQE across all H₂ bond distances and plot the dissociation curve |
+| `qce-visualize` | Generate molecular orbital and VQE energy visualizations |
+
+```bash
+# Example: compute dissociation curve and save the plot
+qce-dissociation --shots 10000 -o dissociation.png
+
+# Generate all visualizations
+qce-visualize --which all
+```
+
+To add a new molecule, generate spin-orbital integrals with PySCF (see `usage/`) and pass the data directory to `qce-dissociation --data-path`.
+
+## Project Structure
+
+| Directory | Purpose |
+|---|---|
+| `quantum_chemistry/` | Core library: Pauli algebra, Jordan-Wigner mapping, estimation, VQE |
+| `quantum_chemistry/molecule/` | Molecular integrals, Hartree-Fock solver (RHF + UHF), linear algebra |
+| `tests/` | 70 pytest tests (unit, integration, end-to-end VQE) |
+| `examples/` | Step-by-step tutorials for mapping and estimation |
+| `visualization/` | Matplotlib visualizations and animations |
+| `h2_data/` | Pre-computed H₂ spin-orbital integrals (34 bond distances) |
 
 ## Next Steps
 
