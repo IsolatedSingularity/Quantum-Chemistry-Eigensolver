@@ -1,4 +1,4 @@
-from typing import List, Literal, Tuple
+from typing import Literal
 
 import numpy as np
 from numpy.typing import NDArray
@@ -36,7 +36,7 @@ def get_molecular_spin_orbital_integrals(molecule: gto.Mole, symmetries_ao=[]):
     return one_body_so, two_body_so, ovlp_so, symmetries_so
 
 
-def assemble_atoms(atom_labels: List[str], positions):
+def assemble_atoms(atom_labels: list[str], positions):
     atoms = list()
     for label, position in zip(atom_labels, positions):
         atoms.append((label,) + tuple(position))
@@ -53,7 +53,7 @@ def ao2pao_from_ovlp(ovlp_ao):
     return ao2pao
 
 
-def pao2mo_from_hf(one_body_pao, two_body_pao, num_electrons: int, symmetries: List[NDArray] = []):
+def pao2mo_from_hf(one_body_pao, two_body_pao, num_electrons: int, symmetries: list[NDArray] = []):
 
     hf_solver = RHFSolver()
     hf_result = hf_solver.solve(one_body_pao, two_body_pao, num_electrons, symmetries)

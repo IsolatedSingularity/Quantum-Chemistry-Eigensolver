@@ -38,10 +38,9 @@ def get_h2_spin_orbital_integrals(distance_hh: float):
 def generate_and_save_h2_spin_orbital_integrals(hh_distances, data_path):
 
     for distance in hh_distances:
-
         one_body, two_body, nuc_eneg = get_h2_spin_orbital_integrals(distance)
 
-        filename = f"h2_mo_integrals_d_{int(distance*1000):04d}.npz"
+        filename = f"h2_mo_integrals_d_{int(distance * 1000):04d}.npz"
 
         print(f"Generating {filename}")
 
@@ -59,10 +58,10 @@ def load_h2_spin_orbital_integral(data_path, filename):
     file = os.path.join(data_path, filename)
 
     with open(file, "rb") as f:
-        distance = np.load(f)
-        one_body = np.load(f)
-        two_body = np.load(f)
-        nuc_eneg = np.load(f)
+        distance = np.load(f, allow_pickle=False)
+        one_body = np.load(f, allow_pickle=False)
+        two_body = np.load(f, allow_pickle=False)
+        nuc_eneg = np.load(f, allow_pickle=False)
 
     return distance, one_body, two_body, nuc_eneg
 

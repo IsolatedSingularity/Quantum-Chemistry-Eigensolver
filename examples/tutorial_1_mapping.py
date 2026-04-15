@@ -130,7 +130,8 @@ print("=" * 60)
 DATA_PATH = "h2_data"
 
 distance, one_body, two_body, nuc_eneg = load_h2_spin_orbital_integral(
-    DATA_PATH, "h2_mo_integrals_d_0750.npz",
+    DATA_PATH,
+    "h2_mo_integrals_d_0750.npz",
 )
 print(f"Distance: {distance:.3f} Å")
 print(f"Nuclear repulsion: {nuc_eneg:.6f} Ha")

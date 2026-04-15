@@ -1,11 +1,9 @@
-from typing import Tuple
-
 import numpy as np
 import rustworkx as rx
 from numpy.typing import NDArray
 
 
-def simultaneous_eig(matrices: Tuple[NDArray[np.complex128], ...], atol: float = 1e-9):
+def simultaneous_eig(matrices: tuple[NDArray[np.complex128], ...], atol: float = 1e-9):
     """
     Simultaneously diagonalize matrices. These must commute between themselves for this procedure to have a solution.
 

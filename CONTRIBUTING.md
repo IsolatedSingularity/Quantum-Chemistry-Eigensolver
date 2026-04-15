@@ -24,7 +24,31 @@ pip install -e ".[dev]"
 pytest
 ```
 
+## Linting and Formatting
+
+```bash
+ruff check .        # lint
+ruff format --check .  # format check
+mypy quantum_chemistry/ --ignore-missing-imports
+```
+
+Or install pre-commit hooks to run these automatically:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
 All tests live in the `tests/` directory and are run automatically by GitHub Actions on every push and pull request.
+
+## Regenerating H₂ Integrals
+
+To regenerate the pre-computed integrals, install the `generate` extra (requires PySCF and rustworkx):
+
+```bash
+pip install -e ".[generate]"
+python usage/generare_h2_integrals.py
+```
 
 ## Code Style
 

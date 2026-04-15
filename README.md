@@ -1,12 +1,10 @@
 # Quantum-Chemistry-Eigensolver
 
-###### Based on the quantum chemistry workshop notebooks created by [Maxime Dion](https://www.usherbrooke.ca/iq/en/news-events/news/details/54588) at the [Institut Quantique](https://www.usherbrooke.ca/iq/).
-
 <p align="center">
   <a href="https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/IsolatedSingularity/Quantum-Chemistry-Eigensolver/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-  <a href="pyproject.toml"><img src="https://img.shields.io/badge/install-pip%20install%20--e%20.%5Bdev%5D-brightgreen" alt="pip install"></a>
+  <a href="#installation"><img src="https://img.shields.io/badge/install-pip%20install%20--e%20.%5Bdev%5D-brightgreen" alt="pip install"></a>
 </p>
 
 
@@ -75,7 +73,7 @@ def build_qubit_hamiltonian(one_body, two_body, creation_ops, annihilation_ops):
 ```
 
 ### 3. VQE Implementation
-The VQE algorithm uses a hybrid quantum-classical approach where a parameterized quantum circuit (ansatz) prepares trial wavefunctions, and a classical optimizer adjusts parameters to minimize energy. For H₂, a particle-number-preserving ansatz starts from the Hartree-Fock state |0101⟩ and applies a CNOT staircase to reduce the double excitation to a single Ry rotation, producing states of the form $\cos(\theta/2)|0101\rangle + \sin(\theta/2)|1010\rangle$ that always contain exactly 2 electrons. The cost function computes the Hamiltonian expectation value by grouping Pauli terms into qubitwise-commuting (QWC) sets and summing weighted contributions.
+The VQE algorithm uses a hybrid quantum-classical approach where a parameterized quantum circuit (ansatz) prepares trial wavefunctions, and a classical optimizer adjusts parameters to minimize energy. For H₂, a particle-number-preserving ansatz starts from the Hartree-Fock state |0101⟩ and applies a CNOT staircase to reduce the double excitation to a single Ry rotation, producing states of the form $\cos(\theta/2)|0101\rangle + \sin(\theta/2)|1010\rangle$ that always contain exactly 2 electrons. The cost function computes the Hamiltonian expectation value by grouping Pauli terms into qubitwise-commuting (QWC) sets and summing weighted contributions. Analytic gradients are computed via the parameter-shift rule.
 
 ```python
 def h2_ansatz_circuit():
@@ -94,7 +92,7 @@ def h2_ansatz_circuit():
 ```
 
 ### 4. Visualizing H₂ Dissociation
-The dissociation visualization demonstrates the fundamental chemistry of bond breaking by plotting how electronic energy, nuclear repulsion, and total energy evolve as the H-H bond stretches. An animation shows the molecule transitioning from compressed state through equilibrium (~0.74 Å) to full dissociation, with synchronized updates of the molecular geometry and potential energy curve. This illustrates why molecules have stable bond lengths—the balance between attractive electronic forces and nuclear repulsion.
+The dissociation visualization demonstrates the fundamental chemistry of bond breaking by plotting how electronic energy, nuclear repulsion, and total energy evolve as the H-H bond stretches. An animation shows the molecule transitioning from compressed state through equilibrium (~0.74 Å) to full dissociation, with synchronized updates of the molecular geometry and potential energy curve. This illustrates why molecules have stable bond lengths: the balance between attractive electronic forces and nuclear repulsion.
 
 ```python
 def animate_h2_dissociation(save_path):
@@ -194,9 +192,25 @@ qce-visualize --which all
 - [ ] Add support for calculating molecular properties beyond the ground state energy (dipole moments, forces, etc.).
 
 > [!TIP]
-> Step-by-step tutorial scripts live in `examples/` — run `tutorial_1_mapping.py` and `tutorial_2_estimation.py` to walk through the full pipeline.
+> Step-by-step tutorial scripts live in `examples/`; run `tutorial_1_mapping.py` and `tutorial_2_estimation.py` to walk through the full pipeline.
 
 > [!NOTE]
 > This implementation serves as an educational resource for understanding quantum algorithms in chemistry applications rather than as a production-level quantum chemistry tool.
 
+## Project Structure
+
+| Directory | Purpose |
+|---|---|
+| `quantum_chemistry/` | Core library: Pauli algebra, Jordan-Wigner mapping, estimation, VQE |
+| `quantum_chemistry/molecule/` | Molecular integrals, Hartree-Fock solver, linear algebra |
+| `tests/` | 70 pytest tests (unit, integration, end-to-end VQE) |
+| `examples/` | Step-by-step tutorials for mapping and estimation |
+| `visualization/` | Matplotlib visualizations and animations |
+| `h2_data/` | Pre-computed H₂ spin-orbital integrals (34 bond distances) |
+
+## Acknowledgments
+
+Built by [Jeffrey Morais](https://ichor.pages.dev/), Quantum Software Lead at BTQ Technologies.
+
+Based on the quantum chemistry workshop notebooks created by [Maxime Dion](https://www.usherbrooke.ca/iq/en/news-events/news/details/54588) at the [Institut Quantique](https://www.usherbrooke.ca/iq/).
 

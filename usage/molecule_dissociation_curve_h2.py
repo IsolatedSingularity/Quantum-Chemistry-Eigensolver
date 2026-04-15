@@ -19,12 +19,13 @@ ansatz_circuit = h2_ansatz_circuit()
 backend = AerSimulator(shots=10000)
 
 
-minimizer = lambda fct, start_param_values: minimize(
-    fct,
-    start_param_values,
-    method="SLSQP",
-    options={"maxiter": 5, "eps": 1e-1, "ftol": 1e-4, "disp": True, "iprint": 2},
-)
+def minimizer(fct, start_param_values):
+    return minimize(
+        fct,
+        start_param_values,
+        method="SLSQP",
+        options={"maxiter": 5, "eps": 1e-1, "ftol": 1e-4, "disp": True, "iprint": 2},
+    )
 
 
 distances, molecule_datas = load_h2_spin_orbital_integrals(data_path)
@@ -33,7 +34,6 @@ distances, molecule_datas = load_h2_spin_orbital_integrals(data_path)
 energies = list()
 last_param = 0
 for distance, molecule_data in zip(distances, molecule_datas):
-
     one_body, two_body, nuc_eneg = molecule_data
 
     num_orbs = one_body.shape[0]

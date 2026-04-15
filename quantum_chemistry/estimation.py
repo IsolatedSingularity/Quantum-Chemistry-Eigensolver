@@ -1,5 +1,3 @@
-from typing import Dict, List, Tuple
-
 import numpy as np
 from numpy.typing import NDArray
 from qiskit.circuit import QuantumCircuit
@@ -8,6 +6,21 @@ from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 from qiskit_ibm_runtime import SamplerV2 as Sampler
 
 from quantum_chemistry.pauli import Operator, PauliString
+
+
+class EstimationContext:
+    """Reusable sampler and transpiler for a given backend.
+
+    Creating a new ``Sampler`` and ``PassManager`` on every VQE iteration is
+    expensive.  Wrap them here so callers can build once and reuse.
+    """
+
+    def __init__(self, backend: Backend, optimization_level: int = 1):
+        self.sampler = Sampler(mode=backend)
+        self.pass_manager = generate_preset_pass_manager(
+            backend=backend,
+            optimization_level=optimization_level,
+        )
 
 
 def bitstring_to_bits(bit_string: str) -> NDArray[np.bool_]:
@@ -26,7 +39,7 @@ def bitstring_to_bits(bit_string: str) -> NDArray[np.bool_]:
     return bits
 
 
-def diagonal_pauli_with_circuit(pauli_string: PauliString) -> Tuple[PauliString, QuantumCircuit]:
+def diagonal_pauli_with_circuit(pauli_string: PauliString) -> tuple[PauliString, QuantumCircuit]:
     """
     Builds the QuantumCircuit that transforms the input PauliString into a diagonal one, all Z and I.
 
@@ -39,11 +52,11 @@ def diagonal_pauli_with_circuit(pauli_string: PauliString) -> Tuple[PauliString,
     # Create a circuit for the transformation
     n = len(pauli_string)
     diag_circuit = QuantumCircuit(n)
-    
+
     # Create a diagonal Pauli string (all Z or I)
     diagonal_z_bits = np.logical_or(pauli_string.z_bits, pauli_string.x_bits)
     diagonal_x_bits = np.zeros_like(diagonal_z_bits, dtype=bool)
-    
+
     # Apply rotations based on the original Pauli operators
     for i in range(n):
         # X operator: needs Hadamard to convert to Z-basis
@@ -53,7 +66,7 @@ def diagonal_pauli_with_circuit(pauli_string: PauliString) -> Tuple[PauliString,
         elif pauli_string.x_bits[i] and pauli_string.z_bits[i]:
             diag_circuit.sdg(i)
             diag_circuit.h(i)
-    
+
     return PauliString(diagonal_z_bits, diagonal_x_bits), diag_circuit
 
 
@@ -67,23 +80,23 @@ def diagonal_pauli_eigenvalue(pauli: PauliString, bits: NDArray[np.bool_]) -> fl
 
     Returns:
         float: The eigenvalue corresponding to eigenvector `bits`
-    """    
+    """
     assert np.all(pauli.x_bits == 0)
-    
-    # For diagonal Pauli strings (only Z and I), the eigenvalue is determined by 
+
+    # For diagonal Pauli strings (only Z and I), the eigenvalue is determined by
     # counting the parity of '1' bits that match with Z positions
     # If even number of matching 1s: eigenvalue = +1
     # If odd number of matching 1s: eigenvalue = -1
-    
+
     # Logical AND gives positions where both pauli.z_bits and bits are 1
     matches = np.logical_and(pauli.z_bits, bits)
-    
+
     # Count the number of matches
     num_matches = np.sum(matches)
-    
+
     # Determine eigenvalue based on parity
     eigenvalue = 1 if num_matches % 2 == 0 else -1
-    
+
     return eigenvalue
 
 
@@ -101,24 +114,24 @@ def diagonal_pauli_expectation_value(pauli: PauliString, counts: dict) -> float:
     """
 
     assert np.all(~pauli.x_bits)  # is diagonal
-    
+
     # Calculate the total number of measurements
     total_counts = sum(counts.values())
-    
+
     # Initialize the expectation value
     expectation_value = 0.0
-    
+
     # Iterate through all measured bit strings
     for bit_string, count in counts.items():
         # Convert the bitstring to bits array
         bits = bitstring_to_bits(bit_string)
-        
+
         # Calculate the eigenvalue for this bitstring
         eigenvalue = diagonal_pauli_eigenvalue(pauli, bits)
-        
+
         # Add the contribution to the expectation value
         expectation_value += (count / total_counts) * eigenvalue
-    
+
     return expectation_value
 
 
@@ -137,15 +150,12 @@ def qubitwise_commutes(p1: PauliString, p2: PauliString) -> bool:
     Returns:
         bool: True if p1 and p2 qubitwise commute.
     """
-    for i in range(len(p1)):
-        op1 = 2 * int(p1.x_bits[i]) + int(p1.z_bits[i])
-        op2 = 2 * int(p2.x_bits[i]) + int(p2.z_bits[i])
-        if op1 != 0 and op2 != 0 and op1 != op2:
-            return False
-    return True
+    ops1 = 2 * p1.x_bits.astype(np.intp) + p1.z_bits.astype(np.intp)
+    ops2 = 2 * p2.x_bits.astype(np.intp) + p2.z_bits.astype(np.intp)
+    return not np.any((ops1 != 0) & (ops2 != 0) & (ops1 != ops2))
 
 
-def group_paulis_qwc(paulis: List[PauliString]) -> List[List[int]]:
+def group_paulis_qwc(paulis: list[PauliString]) -> list[list[int]]:
     """Group Pauli strings into qubitwise-commuting (QWC) sets.
 
     Uses a greedy graph-coloring approach: iterate through the Pauli strings
@@ -159,7 +169,7 @@ def group_paulis_qwc(paulis: List[PauliString]) -> List[List[int]]:
         List[List[int]]: Each inner list contains the indices into *paulis*
             that belong to the same QWC group.
     """
-    groups: List[List[int]] = []
+    groups: list[list[int]] = []
     for idx, pauli in enumerate(paulis):
         placed = False
         for group in groups:
@@ -172,7 +182,7 @@ def group_paulis_qwc(paulis: List[PauliString]) -> List[List[int]]:
     return groups
 
 
-def qwc_measurement_basis(group_paulis: List[PauliString]) -> Tuple[PauliString, QuantumCircuit]:
+def qwc_measurement_basis(group_paulis: list[PauliString]) -> tuple[PauliString, QuantumCircuit]:
     """Build a single measurement circuit for a QWC group.
 
     For each qubit, the measurement basis is determined by the non-identity
@@ -190,11 +200,9 @@ def qwc_measurement_basis(group_paulis: List[PauliString]) -> Tuple[PauliString,
     basis_x = np.zeros(n, dtype=bool)
 
     for pauli in group_paulis:
-        for i in range(n):
-            op = 2 * int(pauli.x_bits[i]) + int(pauli.z_bits[i])
-            if op != 0:
-                basis_z[i] = pauli.z_bits[i]
-                basis_x[i] = pauli.x_bits[i]
+        non_id = pauli.z_bits | pauli.x_bits
+        basis_z[non_id] = pauli.z_bits[non_id]
+        basis_x[non_id] = pauli.x_bits[non_id]
 
     combined = PauliString(basis_z, basis_x)
     _, diag_circuit = diagonal_pauli_with_circuit(combined)
@@ -202,10 +210,12 @@ def qwc_measurement_basis(group_paulis: List[PauliString]) -> Tuple[PauliString,
 
 
 def prepare_estimation_circuits_and_diagonal_paulis(
-    paulis: List[PauliString], state_circuit: QuantumCircuit
-) -> Tuple[List[QuantumCircuit], List[PauliString]]:
+    paulis: list[PauliString], state_circuit: QuantumCircuit
+) -> tuple[list[QuantumCircuit], list[PauliString]]:
     """
-    Assemble the quantum circuit to be executed to compute the expectation values of all the Pauli string in paulis. Also returns the diagonal Paulis required to compute the expectation values.
+    Assemble the quantum circuit to be executed to compute the expectation
+    values of all the Pauli strings in paulis. Also returns the diagonal
+    Paulis required to compute the expectation values.
 
     Args:
         paulis (List[PauliString]): An ensemble on Pauli string
@@ -217,28 +227,31 @@ def prepare_estimation_circuits_and_diagonal_paulis(
     """
     diagonal_paulis = []
     estimation_circuits = []
-    
+
     for pauli in paulis:
         # Get the diagonal Pauli and the diagonalization circuit
         diagonal_pauli, diag_circuit = diagonal_pauli_with_circuit(pauli)
         diagonal_paulis.append(diagonal_pauli)
-        
+
         # Create a copy of the state preparation circuit
         full_circuit = state_circuit.copy()
-        
+
         # Append the diagonalization circuit
         full_circuit.compose(diag_circuit, inplace=True)
-        
+
         # Add measurement for all qubits
         full_circuit.measure_all(add_bits=True)
-        
+
         estimation_circuits.append(full_circuit)
-    
+
     return estimation_circuits, diagonal_paulis
 
 
 def estimate_paulis_expectation_values(
-    paulis: List[PauliString], state_circuit: QuantumCircuit, backend: Backend
+    paulis: list[PauliString],
+    state_circuit: QuantumCircuit,
+    backend: Backend,
+    ctx: EstimationContext | None = None,
 ) -> NDArray[np.float64]:
     """
     Estimates the expectation values for an ensemble of Pauli strings using
@@ -252,17 +265,21 @@ def estimate_paulis_expectation_values(
         paulis (List[PauliString]): An ensemble of Pauli strings
         state_circuit (QuantumCircuit): A quantum circuit which prepares a quantum state
         backend (Backend): The backend on which the circuits will be executed
+        ctx (Optional[EstimationContext]): Pre-built sampler/transpiler to avoid
+            re-creation overhead in tight loops (e.g. VQE iterations).
 
     Returns:
         NDArray[np.float64]: The estimated expectation values
     """
+    if ctx is None:
+        ctx = EstimationContext(backend)
     pauli_list = list(paulis)
 
     # Group Pauli strings by QWC compatibility
     groups = group_paulis_qwc(pauli_list)
 
     # Build one circuit per group
-    group_circuits: List[QuantumCircuit] = []
+    group_circuits: list[QuantumCircuit] = []
     for group in groups:
         group_members = [pauli_list[i] for i in group]
         _, diag_circuit = qwc_measurement_basis(group_members)
@@ -273,11 +290,8 @@ def estimate_paulis_expectation_values(
         group_circuits.append(full_circuit)
 
     # Transpile and execute all group circuits at once
-    sampler = Sampler(mode=backend)
-    pass_manager = generate_preset_pass_manager(backend=backend, optimization_level=1)
-    isa_circuits = pass_manager.run(group_circuits)
-
-    job = sampler.run(isa_circuits)
+    isa_circuits = ctx.pass_manager.run(group_circuits)
+    job = ctx.sampler.run(isa_circuits)
     results = job.result()
 
     # Extract per-Pauli expectation values from the shared counts
@@ -288,14 +302,18 @@ def estimate_paulis_expectation_values(
         for pauli_idx in group:
             diag_pauli, _ = diagonal_pauli_with_circuit(pauli_list[pauli_idx])
             expectation_values[pauli_idx] = diagonal_pauli_expectation_value(
-                diag_pauli, counts,
+                diag_pauli,
+                counts,
             )
 
     return expectation_values
 
 
 def estimate_observable_expectation_value(
-    observable: Operator, state_circuit: QuantumCircuit, backend: Backend
+    observable: Operator,
+    state_circuit: QuantumCircuit,
+    backend: Backend,
+    ctx: EstimationContext | None = None,
 ) -> float:
     """Estimates the expectation values of an operator for a given quantum state
 
@@ -303,6 +321,7 @@ def estimate_observable_expectation_value(
         observable (Operator): Operator from which to take the expectation
         state_circuit (QuantumCircuit): Circuit to prepare the state in which to take the expectation
         backend (Backend): The backend on which the circuits will be executed
+        ctx (Optional[EstimationContext]): Reusable sampler/transpiler context.
 
     Returns:
         float: The estimated expectation value
@@ -310,11 +329,11 @@ def estimate_observable_expectation_value(
     # Extract Pauli strings and coefficients from the observable
     paulis = observable.paulis
     coefs = observable.coefs
-    
+
     # Estimate expectation values for all Pauli strings
-    expectation_values = estimate_paulis_expectation_values(paulis, state_circuit, backend)
-    
+    expectation_values = estimate_paulis_expectation_values(paulis, state_circuit, backend, ctx=ctx)
+
     # Compute the weighted sum using the coefficients
     observable_expectation = np.sum(coefs * expectation_values)
-    
+
     return observable_expectation

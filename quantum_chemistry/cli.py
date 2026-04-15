@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import sys
 from pathlib import Path
-
-import numpy as np
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _project_root() -> Path:
     """Return the project root (one level above quantum_chemistry/)."""
@@ -25,6 +22,7 @@ def _default_data_path() -> Path:
 # ---------------------------------------------------------------------------
 # qce-dissociation
 # ---------------------------------------------------------------------------
+
 
 def dissociation() -> None:
     """Compute and plot the H₂ dissociation curve using VQE."""
@@ -51,7 +49,8 @@ def dissociation() -> None:
         help="Maximum SLSQP iterations per distance (default: 5).",
     )
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         type=str,
         default=None,
         help="Path to save the plot image (default: display interactively).",
@@ -76,12 +75,14 @@ def dissociation() -> None:
     backend = AerSimulator(shots=args.shots)
     max_iter = args.max_iter
 
-    minimizer = lambda fct, start: minimize(
-        fct,
-        start,
-        method="SLSQP",
-        options={"maxiter": max_iter, "eps": 1e-1, "ftol": 1e-4, "disp": True, "iprint": 2},
-    )
+    def minimizer(fct, start, grad):
+        return minimize(
+            fct,
+            start,
+            method="SLSQP",
+            jac=grad,
+            options={"maxiter": max_iter, "ftol": 1e-4, "disp": True, "iprint": 2},
+        )
 
     energies: list[float] = []
     last_param = 0.0
@@ -91,11 +92,18 @@ def dissociation() -> None:
 
         creation_ops, annihilation_ops = creation_annihilation_operators_with_jordan_wigner(num_orbs)
         qubit_hamiltonian = build_qubit_hamiltonian(
-            one_body, two_body, creation_ops, annihilation_ops,
+            one_body,
+            two_body,
+            creation_ops,
+            annihilation_ops,
         ).simplify()
 
         res = minimize_expectation_value(
-            qubit_hamiltonian, ansatz_circuit, backend, minimizer, [last_param],
+            qubit_hamiltonian,
+            ansatz_circuit,
+            backend,
+            minimizer,
+            [last_param],
         )
         last_param = res.x[0]
         energies.append(res.fun + nuc_eneg)
@@ -119,6 +127,7 @@ def dissociation() -> None:
 # qce-visualize
 # ---------------------------------------------------------------------------
 
+
 def visualize() -> None:
     """Generate all static visualizations for the project."""
     parser = argparse.ArgumentParser(
@@ -126,7 +135,8 @@ def visualize() -> None:
         description="Generate project visualizations (molecular orbitals, VQE curves, dissociation).",
     )
     parser.add_argument(
-        "-o", "--output-dir",
+        "-o",
+        "--output-dir",
         type=Path,
         default=_project_root() / "visualization",
         help="Directory to write images to (default: visualization/).",
@@ -140,7 +150,6 @@ def visualize() -> None:
     )
     args = parser.parse_args()
 
-    output_dir = args.which and args.output_dir or _project_root() / "visualization"
     output_dir = args.output_dir
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -149,14 +158,17 @@ def visualize() -> None:
 
     if run_all or "orbitals" in targets:
         from visualization.h2_molecular_orbitals import create_molecular_orbital_visualization
+
         create_molecular_orbital_visualization(str(output_dir / "h2_molecular_orbitals.png"))
 
     if run_all or "vqe" in targets:
         from visualization.vqe_energy_curves import create_vqe_energy_curves_visualization
+
         create_vqe_energy_curves_visualization(str(output_dir / "vqe_energy_curves.png"))
 
     if run_all or "dissociation" in targets:
         from visualization.masterVisualization import animate_h2_dissociation
+
         animate_h2_dissociation(str(output_dir / "h2_dissociation.gif"))
 
     print("Done.")

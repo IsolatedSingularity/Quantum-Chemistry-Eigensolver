@@ -11,7 +11,6 @@ from quantum_chemistry.mapping import (
     build_two_body_qubit_hamiltonian,
     creation_annihilation_operators_with_jordan_wigner,
 )
-from quantum_chemistry.pauli import PauliString
 
 
 class TestJordanWigner:
@@ -68,7 +67,8 @@ class TestHamiltonianConstruction:
         from quantum_chemistry.molecule.h2_molecule import load_h2_spin_orbital_integral
 
         distance, one_body, two_body, nuc_eneg = load_h2_spin_orbital_integral(
-            "h2_data", "h2_mo_integrals_d_0750.npz",
+            "h2_data",
+            "h2_mo_integrals_d_0750.npz",
         )
         return one_body, two_body, nuc_eneg
 

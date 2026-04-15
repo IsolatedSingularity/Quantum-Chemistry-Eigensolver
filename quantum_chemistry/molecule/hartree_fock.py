@@ -1,11 +1,12 @@
-from typing import Callable, Tuple
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import NDArray
+
 from quantum_chemistry.molecule.linalg import simultaneous_eig
 
 
-class HFResult(object):
+class HFResult:
     def __init__(
         self,
         success,
@@ -33,13 +34,13 @@ class HFResult(object):
         out = f"Success : {self.success}\n"
         out += f"Iterations : {self.number_of_iterations}\n"
         out += f"Final energy : {self.energy}\n"
-        out += f"Occupation vector : " + str(self.occupations.astype(int)) + "\n"
-        out += f"State energies : " + str(self.eig_energies) + "\n"
+        out += "Occupation vector : " + str(self.occupations.astype(int)) + "\n"
+        out += "State energies : " + str(self.eig_energies) + "\n"
 
         return out
 
 
-class HartreeFockSolver(object):
+class HartreeFockSolver:
     def __init__(self, convergence_criteria: float = 1e-12, maximum_iterations: int = 100, callback: Callable = None):
 
         self.convergence_criteria = convergence_criteria
@@ -68,7 +69,6 @@ class HartreeFockSolver(object):
         density_matrix = self.density_matrix(np.eye(num_orbitals), num_electrons)
 
         for i in range(self.maximum_iterations):
-
             eff_one_body = self.effective_one_body(one_body, two_body, density_matrix)
 
             eig_energies, eig_states = np.linalg.eigh(eff_one_body)
@@ -168,7 +168,7 @@ class HartreeFockSolver(object):
         return density_matrix
 
     @staticmethod
-    def sort_eig_energies(eig_energies: NDArray, eig_vectors: NDArray) -> Tuple[NDArray, NDArray]:
+    def sort_eig_energies(eig_energies: NDArray, eig_vectors: NDArray) -> tuple[NDArray, NDArray]:
 
         eig_order = np.argsort(eig_energies)
         eig_energies = eig_energies[eig_order]

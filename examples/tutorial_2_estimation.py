@@ -26,7 +26,6 @@ from quantum_chemistry.estimation import (
     diagonal_pauli_with_circuit,
     estimate_observable_expectation_value,
     estimate_paulis_expectation_values,
-    prepare_estimation_circuits_and_diagonal_paulis,
 )
 from quantum_chemistry.mapping import (
     build_qubit_hamiltonian,
@@ -108,7 +107,8 @@ print("=" * 60)
 DATA_PATH = "h2_data"
 
 distance, one_body, two_body, nuc_eneg = load_h2_spin_orbital_integral(
-    DATA_PATH, "h2_mo_integrals_d_0750.npz",
+    DATA_PATH,
+    "h2_mo_integrals_d_0750.npz",
 )
 creation_ops, annihilation_ops = creation_annihilation_operators_with_jordan_wigner(4)
 qubit_hamiltonian = build_qubit_hamiltonian(one_body, two_body, creation_ops, annihilation_ops)
@@ -121,13 +121,18 @@ print(f"⟨H⟩ for |0101⟩ = {e_0101.real:.4f}  (expect ≈ −1.83)")
 
 # VQE minimisation
 ansatz = h2_ansatz_circuit()
-minimizer_fn = lambda cost_fn, x0: minimize(
-    cost_fn, x0,
-    method="SLSQP",
-    options={"maxiter": 5, "eps": 1e-1, "ftol": 1e-4, "disp": True, "iprint": 2},
-)
 
-result = minimize_expectation_value(qubit_hamiltonian, ansatz, backend, minimizer_fn)
+
+def minimizer_fn(cost_fn, x0):
+    return minimize(
+        cost_fn,
+        x0,
+        method="SLSQP",
+        options={"maxiter": 5, "eps": 1e-1, "ftol": 1e-4, "disp": True, "iprint": 2},
+    )
+
+
+result = minimize_expectation_value(qubit_hamiltonian, ansatz, backend, minimizer_fn, use_parameter_shift=False)
 opt_energy = result.fun + nuc_eneg
 print(f"\nVQE ground-state molecular energy: {opt_energy:.6f} Ha")
 

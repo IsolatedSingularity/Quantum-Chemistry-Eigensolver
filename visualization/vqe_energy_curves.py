@@ -14,19 +14,19 @@ import os
 import sys
 from pathlib import Path
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
 
-from quantum_chemistry.molecule.h2_molecule import load_h2_spin_orbital_integrals
-from quantum_chemistry.mapping import (
+from quantum_chemistry.mapping import (  # noqa: E402
     build_qubit_hamiltonian,
     creation_annihilation_operators_with_jordan_wigner,
 )
-from quantum_chemistry.vqe import h2_ansatz_circuit
+from quantum_chemistry.molecule.h2_molecule import load_h2_spin_orbital_integrals  # noqa: E402
+from quantum_chemistry.vqe import h2_ansatz_circuit  # noqa: E402
 
 
 def _energy_vs_theta(h_matrix, ansatz, thetas):
@@ -59,7 +59,12 @@ def create_vqe_energy_curves_visualization(save_path):
 
     # Color palettes
     dist_cmap = sns.cubehelix_palette(
-        start=2, rot=0, dark=0.15, light=0.85, reverse=True, as_cmap=True,
+        start=2,
+        rot=0,
+        dark=0.15,
+        light=0.85,
+        reverse=True,
+        as_cmap=True,
     )
     iter_cmap = sns.color_palette("mako", as_cmap=True)
 
@@ -82,7 +87,10 @@ def create_vqe_energy_curves_visualization(save_path):
 
     # ── Figure ────────────────────────────────────────────────────────
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(14, 7), gridspec_kw={"width_ratios": [1.2, 1]},
+        1,
+        2,
+        figsize=(14, 7),
+        gridspec_kw={"width_ratios": [1.2, 1]},
     )
     fig.suptitle("VQE Energy Landscape (Real Data)", fontsize=18)
 
@@ -112,9 +120,13 @@ def create_vqe_energy_curves_visualization(save_path):
 
     min_idx = int(np.argmin(exact_energies))
     ax2.plot(
-        distances[min_idx], exact_energies[min_idx],
-        "*", color=iter_cmap(0.85), markersize=14,
-        markeredgecolor="black", label="Equilibrium",
+        distances[min_idx],
+        exact_energies[min_idx],
+        "*",
+        color=iter_cmap(0.85),
+        markersize=14,
+        markeredgecolor="black",
+        label="Equilibrium",
     )
     ax2.axvline(x=distances[min_idx], color="gray", linestyle="--", alpha=0.5)
 
@@ -126,10 +138,12 @@ def create_vqe_energy_curves_visualization(save_path):
 
     plt.subplots_adjust(left=0.08, right=0.95, top=0.90, bottom=0.15)
     fig.text(
-        0.5, 0.03,
-        "Left: energy landscape for 8 bond distances.  "
-        "Right: exact diagonalization vs single-parameter VQE.",
-        fontsize=11, ha="center", va="center",
+        0.5,
+        0.03,
+        "Left: energy landscape for 8 bond distances.  Right: exact diagonalization vs single-parameter VQE.",
+        fontsize=11,
+        ha="center",
+        va="center",
         bbox=dict(facecolor="white", alpha=0.9, boxstyle="round,pad=0.5", edgecolor="gray"),
     )
 

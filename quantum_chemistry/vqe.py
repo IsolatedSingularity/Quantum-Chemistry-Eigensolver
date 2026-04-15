@@ -1,10 +1,10 @@
-from typing import Callable, Tuple, Union
+from collections.abc import Callable
 
 import numpy as np
 from qiskit.circuit import Parameter, QuantumCircuit
 from qiskit.providers import Backend
 
-from quantum_chemistry.estimation import estimate_observable_expectation_value
+from quantum_chemistry.estimation import EstimationContext, estimate_observable_expectation_value
 from quantum_chemistry.pauli import Operator
 
 
@@ -25,7 +25,7 @@ def h2_ansatz_circuit() -> QuantumCircuit:
         QuantumCircuit: Parameterized 4-qubit circuit with one parameter (theta).
     """
     varform = QuantumCircuit(4)
-    theta = Parameter('theta')
+    theta = Parameter("theta")
 
     # Prepare reference state |0101> (occupy spin-orbitals 1 and 3)
     varform.x([1, 3])
@@ -52,8 +52,9 @@ def minimize_expectation_value(
     ansatz_circuit: QuantumCircuit,
     backend: Backend,
     minimizer: Callable,
-    initial_point: Union[np.ndarray, None] = None,
-) -> Tuple:
+    initial_point: np.ndarray | None = None,
+    use_parameter_shift: bool = True,
+) -> tuple:
     """Minimizes the expectation value of the Hamiltonian with the ansatz circuit.
 
     Args:
@@ -62,29 +63,47 @@ def minimize_expectation_value(
         backend (Backend): The backend to run the circuits on
         minimizer (Callable): Function that performs the minimization
         initial_point (Union[np.ndarray, None], optional): Initial parameters. Defaults to None.
+        use_parameter_shift (bool): If True, supply analytic gradients via the
+            parameter-shift rule instead of finite differences.
 
     Returns:
         Tuple: Result of the minimization
     """
+    # Build a reusable estimation context to avoid recreating Sampler/PassManager
+    ctx = EstimationContext(backend)
+
     # Define the cost function
     def cost_function(params):
-        # Create parameter dictionary
         param_dict = dict(zip(ansatz_circuit.parameters, params))
-        
-        # Bind parameters to the circuit
         bound_circuit = ansatz_circuit.assign_parameters(param_dict)
-        
-        # Calculate expectation value
-        expectation_value = estimate_observable_expectation_value(hamiltonian, bound_circuit, backend)
-        
+        expectation_value = estimate_observable_expectation_value(
+            hamiltonian,
+            bound_circuit,
+            backend,
+            ctx=ctx,
+        )
         return expectation_value.real
-    
+
+    def parameter_shift_gradient(params):
+        """Analytic gradient via the parameter-shift rule."""
+        grad = np.zeros_like(params)
+        shift = np.pi / 2
+        for i in range(len(params)):
+            params_plus = params.copy()
+            params_minus = params.copy()
+            params_plus[i] += shift
+            params_minus[i] -= shift
+            grad[i] = 0.5 * (cost_function(params_plus) - cost_function(params_minus))
+        return grad
+
     # Set initial point if not provided
     if initial_point is None:
-        # For this H2 problem, start with a small angle to initialize near |0101⟩
         initial_point = np.array([0.1] * len(ansatz_circuit.parameters))
-    
+
     # Perform the minimization
-    result = minimizer(cost_function, initial_point)
-    
+    if use_parameter_shift:
+        result = minimizer(cost_function, initial_point, parameter_shift_gradient)
+    else:
+        result = minimizer(cost_function, initial_point)
+
     return result

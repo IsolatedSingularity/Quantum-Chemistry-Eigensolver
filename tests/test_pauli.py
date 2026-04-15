@@ -5,10 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from quantum_chemistry.pauli import Operator, PauliString
-
+from quantum_chemistry.pauli import PauliString
 
 # ─── PauliString ─────────────────────────────────────────────────────────────
+
 
 class TestPauliStringCreation:
     def test_str_roundtrip(self):
@@ -92,6 +92,7 @@ class TestPauliStringBits:
 
 # ─── Operator ────────────────────────────────────────────────────────────────
 
+
 class TestOperatorCreation:
     def test_from_pauli_mul_coef(self):
         op = 0.5 * PauliString.from_str("IIXZ")
@@ -117,11 +118,7 @@ class TestOperatorAlgebra:
         assert str(result.paulis[0]) == "IYYI"
 
     def test_combine(self):
-        op = (
-            1 * PauliString.from_str("XX")
-            + 2 * PauliString.from_str("XX")
-            + 0.5 * PauliString.from_str("ZZ")
-        )
+        op = 1 * PauliString.from_str("XX") + 2 * PauliString.from_str("XX") + 0.5 * PauliString.from_str("ZZ")
         combined = op.combine()
         assert len(combined) == 2
         # Find the XX term
@@ -135,11 +132,7 @@ class TestOperatorAlgebra:
         assert len(filtered) == 1
 
     def test_simplify(self):
-        op = (
-            1 * PauliString.from_str("XX")
-            + 1 * PauliString.from_str("XX")
-            + 1e-15 * PauliString.from_str("ZZ")
-        )
+        op = 1 * PauliString.from_str("XX") + 1 * PauliString.from_str("XX") + 1e-15 * PauliString.from_str("ZZ")
         simplified = op.simplify()
         assert len(simplified) == 1
         assert np.isclose(simplified.coefs[0], 2.0)
@@ -154,19 +147,12 @@ class TestOperatorMatrix:
     def test_matrix_matches_pauli_sum(self):
         op = 1 * PauliString.from_str("ZZ") + 2 * PauliString.from_str("XX")
         mat = op.to_matrix()
-        expected = (
-            PauliString.from_str("ZZ").to_matrix()
-            + 2 * PauliString.from_str("XX").to_matrix()
-        )
+        expected = PauliString.from_str("ZZ").to_matrix() + 2 * PauliString.from_str("XX").to_matrix()
         np.testing.assert_array_almost_equal(mat, expected)
 
     def test_matrix_hermitian(self):
         """A real-coefficient Pauli operator is Hermitian."""
-        op = (
-            0.5 * PauliString.from_str("ZZ")
-            + 0.3 * PauliString.from_str("XX")
-            + 0.2 * PauliString.from_str("II")
-        )
+        op = 0.5 * PauliString.from_str("ZZ") + 0.3 * PauliString.from_str("XX") + 0.2 * PauliString.from_str("II")
         mat = op.to_matrix()
         np.testing.assert_array_almost_equal(mat, mat.conj().T)
 
