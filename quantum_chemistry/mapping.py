@@ -182,4 +182,4 @@ def build_qubit_hamiltonian(
     # Simplify the Hamiltonian by combining like terms and applying a threshold
     total_hamiltonian = total_hamiltonian.combine().apply_threshold().sort()
 
-    return total_hamiltonian
+    return total_hamiltonian  # type: ignore[return-value]

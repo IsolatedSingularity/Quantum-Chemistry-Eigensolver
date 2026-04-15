@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Callable
 
 import numpy as np
@@ -41,7 +43,9 @@ class HFResult:
 
 
 class HartreeFockSolver:
-    def __init__(self, convergence_criteria: float = 1e-12, maximum_iterations: int = 100, callback: Callable = None):
+    def __init__(
+        self, convergence_criteria: float = 1e-12, maximum_iterations: int = 100, callback: Callable | None = None
+    ):
 
         self.convergence_criteria = convergence_criteria
         self.maximum_iterations = maximum_iterations
@@ -137,7 +141,7 @@ class HartreeFockSolver:
         energy_crit = np.abs(total_energy - self.last_total_energy) < self.convergence_criteria
         density_crit = np.all(np.abs(eig_energies - self.last_eig_energies) < self.convergence_criteria)
 
-        return energy_crit and density_crit
+        return bool(energy_crit and density_crit)
 
     def effective_one_body(self, one_body: NDArray, two_body: NDArray, density_matrix: NDArray) -> NDArray:
 

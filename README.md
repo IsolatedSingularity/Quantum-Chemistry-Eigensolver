@@ -1,4 +1,5 @@
 # Quantum-Chemistry-Eigensolver
+### From-scratch VQE pipeline for H₂ dissociation with Jordan-Wigner mapping on Qiskit 2.0
 
 <p align="center">
   <a href="https://github.com/IsolatedSingularity/Quantum-Chemistry-Eigensolver/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/IsolatedSingularity/Quantum-Chemistry-Eigensolver/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>

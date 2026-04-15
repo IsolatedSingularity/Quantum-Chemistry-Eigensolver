@@ -85,7 +85,7 @@ class TestVQEIntegration:
         exact_energy = eigvals[0] + float(nuc_energy)
 
         ansatz = h2_ansatz_circuit()
-        backend = AerSimulator(shots=20_000)
+        backend = AerSimulator(shots=20_000, seed_simulator=42)
 
         def minimizer_fn(f, x0):
             return minimize(

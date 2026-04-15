@@ -331,9 +331,9 @@ def estimate_observable_expectation_value(
     coefs = observable.coefs
 
     # Estimate expectation values for all Pauli strings
-    expectation_values = estimate_paulis_expectation_values(paulis, state_circuit, backend, ctx=ctx)
+    expectation_values = estimate_paulis_expectation_values(list(paulis), state_circuit, backend, ctx=ctx)
 
     # Compute the weighted sum using the coefficients
     observable_expectation = np.sum(coefs * expectation_values)
 
-    return observable_expectation
+    return float(np.real(observable_expectation))

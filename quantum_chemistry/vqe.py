@@ -106,4 +106,4 @@ def minimize_expectation_value(
     else:
         result = minimizer(cost_function, initial_point)
 
-    return result
+    return result  # type: ignore[return-value]

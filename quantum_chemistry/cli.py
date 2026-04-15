@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import numpy as np
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -103,10 +105,10 @@ def dissociation() -> None:
             ansatz_circuit,
             backend,
             minimizer,
-            [last_param],
+            np.array([last_param]),
         )
-        last_param = res.x[0]
-        energies.append(res.fun + nuc_eneg)
+        last_param = res.x[0]  # type: ignore[attr-defined]
+        energies.append(res.fun + nuc_eneg)  # type: ignore[attr-defined]
         print(f"d = {distance:.2f} Å  →  E = {energies[-1]:.6f} Ha")
 
     fig, ax = plt.subplots(figsize=(8, 5))

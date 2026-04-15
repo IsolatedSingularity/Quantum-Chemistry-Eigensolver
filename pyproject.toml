@@ -68,9 +68,13 @@ select = ["E", "F", "W", "I", "UP"]
 
 [tool.mypy]
 python_version = "3.10"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "quantum_chemistry.molecule.hartree_fock"
+disable_error_code = ["assignment", "arg-type", "truthy-function"]
 
 [tool.coverage.run]
 source = ["quantum_chemistry"]

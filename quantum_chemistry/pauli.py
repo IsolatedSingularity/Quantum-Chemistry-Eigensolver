@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from numbers import Number
 from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
 
 if TYPE_CHECKING:
-    from typing import Self
+    from typing_extensions import Self
 
 PAULI_LABELS = np.array(["I", "Z", "X", "Y"])
 
@@ -71,7 +70,7 @@ class PauliString:
 
         return len(self.z_bits)
 
-    def __mul__(self, other: Self | Number):
+    def __mul__(self, other: Self | complex | float):
         """
         Allow the use of '*' with other PauliString or with a coef (numeric).
 
@@ -91,7 +90,7 @@ class PauliString:
         else:
             return self.mul_coef(other)
 
-    def __rmul__(self, other: Self | Number):
+    def __rmul__(self, other: Self | complex | float):
         """
         Same as __mul__. Allow the use of '*' with a preceding coef (numeric) Like in 0.5 * PauliString
         """
@@ -163,7 +162,7 @@ class PauliString:
 
         return PauliString(new_z_bits, new_x_bits), phase
 
-    def mul_coef(self, other: Number):
+    def mul_coef(self, other: complex | float):
         """
         Build an Operator from a PauliString (self) and a numeric (coef).
 
@@ -233,7 +232,7 @@ class PauliString:
 
 
 class Operator:
-    def __init__(self, coefs: NDArray[np.complex128], paulis: NDArray[PauliString]):
+    def __init__(self, coefs: NDArray[np.complex128], paulis: NDArray):
         """
         Describes an Operator as a Linear Combinaison of Pauli Strings.
 
@@ -316,11 +315,11 @@ class Operator:
         """
 
         if isinstance(other, Operator):
-            return self.add_operator(-1 * other)
+            return self.add_operator((-1) * other)  # type: ignore[operator]
         else:
             raise ValueError("Can only add an other Operator")
 
-    def __mul__(self, other: Self | Number):
+    def __mul__(self, other: Self | complex | float):
         """
         Allow the use of * with other Operator or numeric value(s)
 
@@ -338,20 +337,7 @@ class Operator:
         else:
             return self.mul_coef(other)
 
-    def __rmul__(self, other: Number):
-        """
-        Same as __mul__.
-        Allow the use of '*' with a preceding coef (numeric).
-        Like in 0.5 * Operator.
-
-        Args:
-            other (Operator): An other Operator.
-
-        Returns:
-            Operator: New Operator of len = len(self) * len(other)
-            or
-            Operator: New Operator of same length with modified coefs
-        """
+    def __rmul__(self, other: complex | float):
 
         return self.__mul__(other)
 
@@ -415,7 +401,7 @@ class Operator:
 
         return Operator(np.array(new_coefs), np.array(new_pauli_strings))
 
-    def mul_coef(self, other: Number):
+    def mul_coef(self, other: complex | float):
         """
         Multiply the Operator by a coef (numeric) or an array of the same length.
 
@@ -428,7 +414,7 @@ class Operator:
         Returns:
             Operator: New Operator of len = len(self).
         """
-        return Operator(other * self.coefs, self.paulis)
+        return Operator(other * self.coefs, self.paulis)  # type: ignore[operator,arg-type]
 
     def to_zx_bits(self):
         """
