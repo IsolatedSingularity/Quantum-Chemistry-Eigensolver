@@ -29,7 +29,7 @@ All tests live in the `tests/` directory and are run automatically by GitHub Act
 ## Code Style
 
 - Keep functions and classes well-documented with docstrings.
-- Follow [PEP 8](https://pep8.org/) conventions.
+- Use **camelCase** for all identifiers (variables, functions, parameters).
 - Use type hints where practical.
 
 ## Project Structure

@@ -516,7 +516,7 @@ class Operator:
 
         Args:
             threshold (float, optional): PauliStrings with coef smaller than 'threshold' will be removed.
-                                         Defaults to 1e-0.
+                                         Defaults to 1e-9.
 
         Returns:
             Operator: Operator without coefficients smaller than threshold.

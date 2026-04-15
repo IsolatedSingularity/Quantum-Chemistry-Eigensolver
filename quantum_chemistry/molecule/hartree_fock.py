@@ -40,9 +40,9 @@ class HFResult(object):
 
 
 class HartreeFockSolver(object):
-    def __init__(self, convergeance_criteria: float = 1e-12, maximum_iterations: int = 100, callback: Callable = None):
+    def __init__(self, convergence_criteria: float = 1e-12, maximum_iterations: int = 100, callback: Callable = None):
 
-        self.convergeance_criteria = convergeance_criteria
+        self.convergence_criteria = convergence_criteria
         self.maximum_iterations = maximum_iterations
         self.callback = callback
 
@@ -54,7 +54,7 @@ class HartreeFockSolver(object):
 
     def update_options(self, **kwargs):
 
-        possible_options = ["convergeance_criteria", "maximum_iterations", "callback"]
+        possible_options = ["convergence_criteria", "maximum_iterations", "callback"]
 
         for option in possible_options:
             if option in kwargs:
@@ -81,7 +81,7 @@ class HartreeFockSolver(object):
                 self.callback(i, total_energy)
 
             if i > 0:
-                if self.test_convergeance(total_energy, eig_energies):
+                if self.test_convergence(total_energy, eig_energies):
                     success = True
                     break
 
@@ -132,10 +132,10 @@ class HartreeFockSolver(object):
 
         return result
 
-    def test_convergeance(self, total_energy: float, eig_energies: NDArray) -> bool:
+    def test_convergence(self, total_energy: float, eig_energies: NDArray) -> bool:
 
-        energy_crit = np.abs(total_energy - self.last_total_energy) < self.convergeance_criteria
-        density_crit = np.all(np.abs(eig_energies - self.last_eig_energies) < self.convergeance_criteria)
+        energy_crit = np.abs(total_energy - self.last_total_energy) < self.convergence_criteria
+        density_crit = np.all(np.abs(eig_energies - self.last_eig_energies) < self.convergence_criteria)
 
         return energy_crit and density_crit
 

@@ -23,6 +23,10 @@ parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
 
 from quantum_chemistry.molecule.h2_molecule import load_h2_spin_orbital_integrals
+from quantum_chemistry.mapping import (
+    build_qubit_hamiltonian,
+    creation_annihilation_operators_with_jordan_wigner,
+)
 
 # Constants
 BOHR_TO_ANGSTROM = 0.529177  # Convert Bohr to Angstrom
@@ -42,47 +46,27 @@ class Arrow3D(FancyArrowPatch):
 
 def load_and_process_data():
     """
-    Load H2 data and process it for visualization
+    Load H2 data and compute exact ground-state energies via matrix
+    diagonalization of the Jordan-Wigner qubit Hamiltonian.
     """
-    # Get data path
     data_path = os.path.join(parent_dir, "h2_data")
-    
-    print(f"Loading H2 data from {data_path}")
-    try:
-        distances, molecule_data = load_h2_spin_orbital_integrals(data_path)
-        
-        # Extract nuclear repulsion energies
-        nuclear_energies = [data[2] for data in molecule_data]
-        
-        # Define simulated electronic energies (as we don't have actual VQE results)
-        # This approximates the H2 ground state energy curve
-        electronic_energies = []
-        for d, nuc_energy in zip(distances, nuclear_energies):
-            # Approximate the electronic energy using a simple model
-            # (in reality this would come from quantum simulations)
-            elec_energy = -1.0 - 0.2/(0.4 + (d-0.74)**2)
-            electronic_energies.append(elec_energy)
-        
-        total_energies = [e + n for e, n in zip(electronic_energies, nuclear_energies)]
-        
-        return distances, electronic_energies, nuclear_energies, total_energies
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        # Generate synthetic data if actual data can't be loaded
-        return generate_synthetic_data()
 
-def generate_synthetic_data():
-    """
-    Generate synthetic data for H2 dissociation curve if real data cannot be loaded
-    """
-    print("Generating synthetic H2 data")
-    distances = np.linspace(0.3, 1.9, 35)
-    
-    # Generate simulated energy values
-    electronic_energies = -1.1 - 0.8*np.exp(-(distances-0.74)**2/0.2)
-    nuclear_energies = 1.0 / distances
-    total_energies = electronic_energies + nuclear_energies
-    
+    print(f"Loading H2 data from {data_path}")
+    distances, molecule_data = load_h2_spin_orbital_integrals(data_path)
+
+    nuclear_energies = []
+    electronic_energies = []
+
+    for d, (one_body, two_body, nuc_energy) in zip(distances, molecule_data):
+        nuclear_energies.append(float(nuc_energy))
+
+        c_ops, a_ops = creation_annihilation_operators_with_jordan_wigner(one_body.shape[0])
+        h = build_qubit_hamiltonian(one_body, two_body, c_ops, a_ops)
+        eig_vals = np.linalg.eigvalsh(h.to_matrix())
+        electronic_energies.append(float(np.min(eig_vals)))
+
+    total_energies = [e + n for e, n in zip(electronic_energies, nuclear_energies)]
+
     return distances, electronic_energies, nuclear_energies, total_energies
 
 

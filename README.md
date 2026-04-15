@@ -15,7 +15,7 @@
 
 ## Objective
 
-This repository implements a quantum chemistry eigensolver for simulating small molecular systems, with a focus on the H₂ molecule. Quantum chemistry is one of the most promising near-term applications of quantum computing, leveraging variational quantum algorithms to calculate molecular ground state energies.
+This repository implements a quantum chemistry eigensolver for simulating small molecular systems, with a focus on the H₂ molecule. Quantum chemistry is one of the most promising near-term applications of quantum computing, using variational quantum algorithms to calculate molecular ground state energies.
 
 The core of this implementation is the **Variational Quantum Eigensolver (VQE)**, a hybrid quantum-classical algorithm that approximates the ground state energy of quantum systems. For molecular systems, this energy is determined by the electronic Hamiltonian:
 
@@ -75,17 +75,21 @@ def build_qubit_hamiltonian(one_body, two_body, creation_ops, annihilation_ops):
 ```
 
 ### 3. VQE Implementation
-The VQE algorithm uses a hybrid quantum-classical approach where a parameterized quantum circuit (ansatz) prepares trial wavefunctions, and a classical optimizer adjusts parameters to minimize energy. For H₂, the ansatz starts from the Hartree-Fock state |0101⟩ and applies parameterized rotations with entangling gates to explore the relevant Hilbert space. The cost function computes the Hamiltonian expectation value by measuring each Pauli string term and summing weighted contributions.
+The VQE algorithm uses a hybrid quantum-classical approach where a parameterized quantum circuit (ansatz) prepares trial wavefunctions, and a classical optimizer adjusts parameters to minimize energy. For H₂, a particle-number-preserving ansatz starts from the Hartree-Fock state |0101⟩ and applies a CNOT staircase to reduce the double excitation to a single Ry rotation, producing states of the form $\cos(\theta/2)|0101\rangle + \sin(\theta/2)|1010\rangle$ that always contain exactly 2 electrons. The cost function computes the Hamiltonian expectation value by grouping Pauli terms into qubitwise-commuting (QWC) sets and summing weighted contributions.
 
 ```python
 def h2_ansatz_circuit():
-    """Build the H2 ansatz circuit with 1 parameter."""
+    """Build a particle-number-preserving H2 ansatz with 1 parameter."""
     varform = QuantumCircuit(4)
     theta = Parameter('theta')
-    varform.x([1, 3])  # Prepare |0101⟩
-    varform.ry(theta, 0); varform.ry(theta, 1)
-    varform.ry(-theta, 2); varform.ry(-theta, 3)
-    varform.cx(0, 1); varform.cx(2, 3)
+    varform.x([1, 3])           # Prepare |0101⟩
+    varform.cx(1, 0)            # CNOT staircase
+    varform.cx(2, 1)
+    varform.cx(3, 2)
+    varform.ry(theta, 3)        # Parametric rotation
+    varform.cx(3, 2)            # Reverse staircase
+    varform.cx(2, 1)
+    varform.cx(1, 0)
     return varform
 ```
 
@@ -115,15 +119,15 @@ def create_molecular_orbital_visualization(save_path):
 ```
 
 ### 6. VQE Energy Curves Visualization
-This visualization captures the VQE optimization landscape, showing a 2D parameter space contour plot alongside the evolution of energy curves during optimization. The trajectory from initial guess to optimum demonstrates how the classical optimizer navigates the energy surface. Color gradients indicate iteration progress, with the final converged energy curve representing the best variational approximation to the true ground state across all bond distances.
+This visualization shows the real VQE energy landscape computed from the Jordan-Wigner Hamiltonian. The left panel plots energy vs the single ansatz parameter theta for eight representative bond distances, colored by distance. The right panel overlays the exact diagonalization dissociation curve with the VQE-optimized minimum at each distance, confirming that the variational bound is tight.
 
 ```python
 def create_vqe_energy_curves_visualization(save_path):
-    """Create visualization of VQE optimization process."""
-    energy_cmap = sns.cubehelix_palette(start=2, rot=0, as_cmap=True)
-    iter_cmap = sns.color_palette("mako", as_cmap=True)
-    contour = ax1.contourf(T1, T2, energy_grid, 50, cmap=energy_cmap)
-    # Plot optimization trajectory with iteration-colored markers
+    """Build VQE energy curves from real Hamiltonian data."""
+    distances, molecule_data = load_h2_spin_orbital_integrals(data_path)
+    ansatz = h2_ansatz_circuit()
+    # Left: energy vs theta for 8 bond distances
+    # Right: exact dissociation vs VQE minimum
 ```
 
 ## Results
@@ -146,7 +150,7 @@ The animation demonstrates how the H₂ molecule's energy changes as the bond di
 
 ![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
 
-This visualization displays the VQE optimization landscape with a 2D parameter space contour plot (left) showing how energy varies with circuit parameters θ₁ and θ₂. The optimization trajectory is traced from initial parameters (dark) to final converged values (light), demonstrating the classical optimizer's path through the energy surface. The right panel shows how the molecular energy curves improve with each iteration, converging toward the true ground state energy across all bond distances.
+The left panel shows the single-parameter energy landscape for eight bond distances computed from the full Jordan-Wigner Hamiltonian. The right panel overlays the exact diagonalization dissociation curve (black line) with the VQE-optimized minimum at each distance (dots), confirming the variational bound is tight across the entire dissociation range.
 
 ## Installation
 
@@ -183,8 +187,8 @@ qce-visualize --which all
 
 ## Next Steps
 
-- [x] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
-- [x] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
+- [ ] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
+- [ ] Extend the implementation to handle larger molecules like LiH, BeH₂, or H₂O.
 - [ ] Incorporate noise models to simulate realistic quantum hardware performance.
 - [ ] Implement quantum subspace expansion techniques to improve accuracy of excited state calculations.
 - [ ] Add support for calculating molecular properties beyond the ground state energy (dipole moments, forces, etc.).

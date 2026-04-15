@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from numpy.typing import NDArray
@@ -122,6 +122,85 @@ def diagonal_pauli_expectation_value(pauli: PauliString, counts: dict) -> float:
     return expectation_value
 
 
+def qubitwise_commutes(p1: PauliString, p2: PauliString) -> bool:
+    """Check whether two Pauli strings commute qubitwise (QWC).
+
+    Two Pauli strings are QWC if, at every qubit position, their single-qubit
+    Pauli operators commute. Since any single-qubit Pauli commutes with itself
+    and with the identity, the only conflicts are between distinct non-identity
+    Paulis (e.g. X vs Z on the same qubit).
+
+    Args:
+        p1 (PauliString): First Pauli string.
+        p2 (PauliString): Second Pauli string.
+
+    Returns:
+        bool: True if p1 and p2 qubitwise commute.
+    """
+    for i in range(len(p1)):
+        op1 = 2 * int(p1.x_bits[i]) + int(p1.z_bits[i])
+        op2 = 2 * int(p2.x_bits[i]) + int(p2.z_bits[i])
+        if op1 != 0 and op2 != 0 and op1 != op2:
+            return False
+    return True
+
+
+def group_paulis_qwc(paulis: List[PauliString]) -> List[List[int]]:
+    """Group Pauli strings into qubitwise-commuting (QWC) sets.
+
+    Uses a greedy graph-coloring approach: iterate through the Pauli strings
+    and assign each one to the first existing group where it qubitwise commutes
+    with every member, or create a new group otherwise.
+
+    Args:
+        paulis (List[PauliString]): Pauli strings to group.
+
+    Returns:
+        List[List[int]]: Each inner list contains the indices into *paulis*
+            that belong to the same QWC group.
+    """
+    groups: List[List[int]] = []
+    for idx, pauli in enumerate(paulis):
+        placed = False
+        for group in groups:
+            if all(qubitwise_commutes(pauli, paulis[g]) for g in group):
+                group.append(idx)
+                placed = True
+                break
+        if not placed:
+            groups.append([idx])
+    return groups
+
+
+def qwc_measurement_basis(group_paulis: List[PauliString]) -> Tuple[PauliString, QuantumCircuit]:
+    """Build a single measurement circuit for a QWC group.
+
+    For each qubit, the measurement basis is determined by the non-identity
+    Pauli present in any member of the group (all members agree because they
+    are QWC).
+
+    Args:
+        group_paulis (List[PauliString]): QWC-compatible Pauli strings.
+
+    Returns:
+        Tuple containing the diagonal representation and the basis-rotation circuit.
+    """
+    n = len(group_paulis[0])
+    basis_z = np.zeros(n, dtype=bool)
+    basis_x = np.zeros(n, dtype=bool)
+
+    for pauli in group_paulis:
+        for i in range(n):
+            op = 2 * int(pauli.x_bits[i]) + int(pauli.z_bits[i])
+            if op != 0:
+                basis_z[i] = pauli.z_bits[i]
+                basis_x[i] = pauli.x_bits[i]
+
+    combined = PauliString(basis_z, basis_x)
+    _, diag_circuit = diagonal_pauli_with_circuit(combined)
+    return combined, diag_circuit
+
+
 def prepare_estimation_circuits_and_diagonal_paulis(
     paulis: List[PauliString], state_circuit: QuantumCircuit
 ) -> Tuple[List[QuantumCircuit], List[PauliString]]:
@@ -162,37 +241,56 @@ def estimate_paulis_expectation_values(
     paulis: List[PauliString], state_circuit: QuantumCircuit, backend: Backend
 ) -> NDArray[np.float64]:
     """
-    Estimates the expectation values for an ensemble of Pauli strings (paulis) for a given quantum state (state_circuit) using a given backend.
+    Estimates the expectation values for an ensemble of Pauli strings using
+    qubitwise-commuting (QWC) grouping to reduce the number of circuits.
+
+    Pauli strings that share a common measurement basis are grouped and
+    measured with a single circuit. Each group's counts are reused to
+    compute the expectation value of every member in that group.
 
     Args:
-        paulis (List[PauliString]): An ensemble on Pauli string
-        state_circuit (QuantumCircuit): A quantum circuit which prepare a quantum state
+        paulis (List[PauliString]): An ensemble of Pauli strings
+        state_circuit (QuantumCircuit): A quantum circuit which prepares a quantum state
         backend (Backend): The backend on which the circuits will be executed
 
     Returns:
         NDArray[np.float64]: The estimated expectation values
     """
-    # Prepare the circuits and get the diagonal Paulis
-    estimation_circuits, diagonal_paulis = prepare_estimation_circuits_and_diagonal_paulis(paulis, state_circuit)
-    
-    # Set up the sampler and execute the circuits
+    pauli_list = list(paulis)
+
+    # Group Pauli strings by QWC compatibility
+    groups = group_paulis_qwc(pauli_list)
+
+    # Build one circuit per group
+    group_circuits: List[QuantumCircuit] = []
+    for group in groups:
+        group_members = [pauli_list[i] for i in group]
+        _, diag_circuit = qwc_measurement_basis(group_members)
+
+        full_circuit = state_circuit.copy()
+        full_circuit.compose(diag_circuit, inplace=True)
+        full_circuit.measure_all()
+        group_circuits.append(full_circuit)
+
+    # Transpile and execute all group circuits at once
     sampler = Sampler(mode=backend)
     pass_manager = generate_preset_pass_manager(backend=backend, optimization_level=1)
-    isa_circuits = pass_manager.run(estimation_circuits)
-    
-    # Run the circuits
+    isa_circuits = pass_manager.run(group_circuits)
+
     job = sampler.run(isa_circuits)
     results = job.result()
-    
-    # Calculate expectation values from the results
-    expectation_values = np.zeros(len(paulis))
-    
-    for i, diagonal_pauli in enumerate(diagonal_paulis):
-        # Get the counts for the current circuit
-        counts = results[i].data.meas.get_counts()
-        # Calculate the expectation value
-        expectation_values[i] = diagonal_pauli_expectation_value(diagonal_pauli, counts)
-    
+
+    # Extract per-Pauli expectation values from the shared counts
+    expectation_values = np.zeros(len(pauli_list))
+
+    for g_idx, group in enumerate(groups):
+        counts = results[g_idx].data.meas.get_counts()
+        for pauli_idx in group:
+            diag_pauli, _ = diagonal_pauli_with_circuit(pauli_list[pauli_idx])
+            expectation_values[pauli_idx] = diagonal_pauli_expectation_value(
+                diag_pauli, counts,
+            )
+
     return expectation_values
 
 

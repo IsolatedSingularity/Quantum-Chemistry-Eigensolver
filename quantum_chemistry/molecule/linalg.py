@@ -7,14 +7,14 @@ from numpy.typing import NDArray
 
 def simultaneous_eig(matrices: Tuple[NDArray[np.complex128], ...], atol: float = 1e-9):
     """
-    Simultanously diagonlized matrices. These must commute between themselves for this procedure to have a solution.
+    Simultaneously diagonalize matrices. These must commute between themselves for this procedure to have a solution.
 
     Args:
-        matrices (Tuple[NDArray[np.complex128], ...]): _description_
-        atol (float, optional): _description_. Defaults to 1e-9.
+        matrices (Tuple[NDArray[np.complex128], ...]): Commuting square matrices to diagonalize.
+        atol (float, optional): Absolute tolerance for block detection. Defaults to 1e-9.
 
     Returns:
-        _type_: _description_
+        Tuple[NDArray, NDArray]: Eigenvalues (num_matrices x size) and shared eigenvectors.
     """
 
     num_matrices = len(matrices)
@@ -48,14 +48,14 @@ def simultaneous_eig(matrices: Tuple[NDArray[np.complex128], ...], atol: float =
 
 def block_diagonal_to_blocks(matrix: NDArray[np.complex128], threshold: float = 1e-9):
     """
-    Find disconnected blocks in a square matrix
+    Find disconnected blocks in a square matrix.
 
     Args:
-        matrix (NDArray[np.complex128]): _description_
-        threshold (float, optional): _description_. Defaults to 1e-9.
+        matrix (NDArray[np.complex128]): Square matrix to decompose into blocks.
+        threshold (float, optional): Elements below this are treated as zero. Defaults to 1e-9.
 
     Returns:
-        _type_: _description_
+        Tuple[List[NDArray], List[List[int]]]: Block sub-matrices and their row/column indices.
     """
 
     edges = list(zip(*np.where(np.triu(np.abs(matrix) > threshold, k=1))))

@@ -9,28 +9,41 @@ from quantum_chemistry.pauli import Operator
 
 
 def h2_ansatz_circuit() -> QuantumCircuit:
-    """Build the H2 ansatz circuit with 1 parameter.
+    """Build a particle-number-preserving H2 ansatz with 1 parameter.
+
+    Implements a rotation in the {|0101>, |1010>} subspace using a CNOT
+    staircase to reduce the double excitation to a single-qubit Ry gate.
+    The resulting unitary is exp(-i theta/2 X0 X1 X2 Y3), which preserves
+    the total electron count (2 particles) and maps:
+
+        |psi(theta)> = cos(theta/2)|0101> + sin(theta/2)|1010>
+
+    The circuit depth is 6 CNOTs + 1 Ry, much shorter than a full UCC
+    doubles decomposition while remaining exact for the H2 two-state problem.
 
     Returns:
-        QuantumCircuit: Circuit that can generate all states in the subspace.
+        QuantumCircuit: Parameterized 4-qubit circuit with one parameter (theta).
     """
-    # Create a 4-qubit circuit with one parameter
     varform = QuantumCircuit(4)
     theta = Parameter('theta')
-    
-    # Prepare |0101⟩ state (reverse order, so qubits 1 and 3)
+
+    # Prepare reference state |0101> (occupy spin-orbitals 1 and 3)
     varform.x([1, 3])
-    
-    # Apply parameterized rotations to create superposition between |0101⟩ and |1010⟩
-    varform.ry(theta, 0)
-    varform.ry(theta, 1)
-    varform.ry(-theta, 2)
-    varform.ry(-theta, 3)
-    
-    # Add CNOT gates for entanglement
-    varform.cx(0, 1)
-    varform.cx(2, 3)
-    
+
+    # CNOT staircase: maps |0101> -> |0111> and |1010> -> |1111>
+    # so both target states differ only at qubit 3
+    varform.cx(1, 0)
+    varform.cx(2, 1)
+    varform.cx(3, 2)
+
+    # Parametric rotation on qubit 3
+    varform.ry(theta, 3)
+
+    # Reverse CNOT staircase
+    varform.cx(3, 2)
+    varform.cx(2, 1)
+    varform.cx(1, 0)
+
     return varform
 
 
