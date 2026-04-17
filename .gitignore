@@ -36,3 +36,9 @@ Jenova/
 
 # Copilot workspace instructions (personal)
 .github/copilot-instructions.md
+
+.mypy_cache/
+.ruff_cache/
+
+.mypy_cache/
+.ruff_cache/
