@@ -33,7 +33,6 @@ from quantum_chemistry.mapping import (  # noqa: E402
 from quantum_chemistry.molecule.h2_molecule import load_h2_spin_orbital_integrals  # noqa: E402
 from quantum_chemistry.vqe import h2_ansatz_circuit  # noqa: E402
 
-
 # ── Tokyo Night Storm palette ──────────────────────────────────────────────────
 PALETTE = {
     "bg": "#1a1b26",
@@ -69,9 +68,7 @@ def applyTokyoNight() -> None:
             "grid.color": PALETTE["subtle"],
             "grid.linestyle": "--",
             "grid.alpha": 0.4,
-            "axes.prop_cycle": cycler(
-                color=[PALETTE["blue"], PALETTE["cyan"], PALETTE["purple"], PALETTE["red"]]
-            ),
+            "axes.prop_cycle": cycler(color=[PALETTE["blue"], PALETTE["cyan"], PALETTE["purple"], PALETTE["red"]]),
             "legend.facecolor": PALETTE["panel"],
             "legend.edgecolor": PALETTE["subtle"],
             "legend.labelcolor": PALETTE["fg"],
@@ -79,7 +76,6 @@ def applyTokyoNight() -> None:
             "font.size": 10,
         }
     )
-
 
 
 # ── Energy grid computation ────────────────────────────────────────────────────

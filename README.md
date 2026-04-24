@@ -10,7 +10,9 @@
 
 
 
-![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
+<p align="center">
+  <img src="visualization/vqe_energy_curves.png" alt="VQE Energy Optimization Curves" width="800">
+</p>
 
 ## Objective
 
@@ -169,7 +171,9 @@ Bond-length sweep from 0.3 to 1.95 Å showing the H₂ wavefunction transitionin
 
 VQE energy landscape across 8 sampled bond distances (left) and the full dissociation curve compared against exact diagonalization (right).
 
-![VQE Energy Optimization Curves](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/vqe_energy_curves.png?raw=true)
+<p align="center">
+  <img src="visualization/vqe_energy_curves.png" alt="VQE Energy Optimization Curves" width="800">
+</p>
 
 ## Next Steps
 
