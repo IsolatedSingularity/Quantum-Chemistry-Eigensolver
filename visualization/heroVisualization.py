@@ -96,7 +96,7 @@ def computeEnergyGrid(thetas, distances, molecule_data, ansatz):
     param = list(ansatz.parameters)[0]
     energyGrid = np.zeros((len(distances), len(thetas)))
 
-    for dIdx, (d, (one_body, two_body, nuc)) in enumerate(zip(distances, molecule_data)):
+    for dIdx, (_, (one_body, two_body, nuc)) in enumerate(zip(distances, molecule_data)):
         c_ops, a_ops = creation_annihilation_operators_with_jordan_wigner(one_body.shape[0])
         h = build_qubit_hamiltonian(one_body, two_body, c_ops, a_ops)
         h_mat = h.to_matrix()
@@ -175,7 +175,7 @@ def createHeroVisualization(savePath):
     c_ops, a_ops = creation_annihilation_operators_with_jordan_wigner(one_body_eq.shape[0])
     h_eq = build_qubit_hamiltonian(one_body_eq, two_body_eq, c_ops, a_ops)
     h_mat_eq = h_eq.to_matrix()
-    thetaPath, energySteps = simulateVqeSteps(h_mat_eq, float(nuc_eq), ansatz, thetaInit=-1.2, nIterSteps=45)
+    _, energySteps = simulateVqeSteps(h_mat_eq, float(nuc_eq), ansatz, thetaInit=-1.2, nIterSteps=45)
 
     # Custom PES colormap: deep blue to purple to yellow
     pesCmap = LinearSegmentedColormap.from_list(
