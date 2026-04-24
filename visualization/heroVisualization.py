@@ -81,8 +81,6 @@ def applyTokyoNight() -> None:
     )
 
 
-applyTokyoNight()
-
 
 # ── Energy grid computation ────────────────────────────────────────────────────
 def computeEnergyGrid(thetas, distances, molecule_data, ansatz):
@@ -299,4 +297,5 @@ def createHeroVisualization(savePath):
 
 if __name__ == "__main__":
     outputDir = os.path.dirname(os.path.abspath(__file__))
+    applyTokyoNight()
     createHeroVisualization(os.path.join(outputDir, "vqe_hero.png"))
