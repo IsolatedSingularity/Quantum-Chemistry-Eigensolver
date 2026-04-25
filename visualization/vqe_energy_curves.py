@@ -115,8 +115,8 @@ def create_vqe_energy_curves_visualization(save_path):
     ax1.grid(True, alpha=0.3)
 
     # Right panel: dissociation curves
-    ax2.plot(distances, exact_energies, "k-", linewidth=2, label="Exact (diag)")
-    ax2.plot(distances, vqe_energies, "o", color=iter_cmap(0.5), markersize=5, label="VQE minimum")
+    ax2.plot(distances, exact_energies, color=iter_cmap(0.15), linewidth=2, label="Exact (diag)")
+    ax2.plot(distances, vqe_energies, "o", color=iter_cmap(0.6), markersize=5, label="VQE minimum")
 
     min_idx = int(np.argmin(exact_energies))
     ax2.plot(

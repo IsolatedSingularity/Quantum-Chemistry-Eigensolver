@@ -163,19 +163,23 @@ Ground state energy at equilibrium: **-1.137 Ha** (within $10^{-6}$ Ha of exact 
 
 Bonding and antibonding molecular orbitals of H₂, computed from one-electron integrals in the STO-3G basis.
 
-![H2 Molecular Orbitals](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_molecular_orbitals.png?raw=true)
+<p align="center">
+  <img src="visualization/h2_molecular_orbitals.png" alt="H2 Molecular Orbitals" width="800">
+</p>
 
 Bond-length sweep from 0.3 to 1.95 Å showing the H₂ wavefunction transitioning from a compact bonding state to separated atoms.
 
-![H2 Dissociation Animation](https://github.com/IsolatedSingularity/quantum-chemistry-eigensolver/blob/main/visualization/h2_dissociation.gif?raw=true)
+<p align="center">
+  <img src="visualization/h2_dissociation.gif" alt="H2 Dissociation Animation" width="700">
+</p>
 
-VQE energy landscape across 8 sampled bond distances (left) and the full dissociation curve compared against exact diagonalization (right).
+VQE energy landscape across 8 sampled bond distances (left) and the full dissociation curve compared against exact diagonalization (right), colored with mako/cubehelix palette.
 
 <p align="center">
   <img src="visualization/vqe_energy_curves.png" alt="VQE Energy Optimization Curves" width="800">
 </p>
 
-VQE potential energy surface showing E(theta, R) - E_min(R) across all 34 bond distances. Gradient-descent trajectories (parameter-shift rule) are shown at 8 sampled geometries: paths are short near equilibrium where the well is deep and converge slowly toward dissociation where coupling weakens. Right panel: energy error on a log scale at three geometries (compressed, equilibrium, stretched).
+VQE potential energy surface showing E(theta, R) - E_min(R) across all 34 bond distances. White piecewise paths show discrete gradient-descent steps at 8 sampled geometries; arrows indicate descent direction. Right panel: energy error on a log scale at three geometries (compressed, equilibrium, stretched).
 
 <p align="center">
   <img src="visualization/vqe_hero.png" alt="VQE Potential Energy Surface with optimization trajectories" width="900">

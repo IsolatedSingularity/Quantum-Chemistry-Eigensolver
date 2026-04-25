@@ -20,6 +20,7 @@ import os
 import sys
 from pathlib import Path
 
+import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
@@ -147,10 +148,8 @@ def createHeroVisualization(savePath):
         convEnergy.append(np.array(steps))
 
     # ── Color palettes -- exact match to vqe_energy_curves.py ─────────────────
-    distCmap = sns.cubehelix_palette(start=2, rot=0, dark=0.15, light=0.85, reverse=True, as_cmap=True)
     pesCmap = sns.color_palette("mako", as_cmap=True)
     convPalette = sns.color_palette("mako", n_colors=3)
-    norm = plt.Normalize(distances[0], distances[-1])
 
     # ── Figure ────────────────────────────────────────────────────────────────
     fig = plt.figure(figsize=(16, 7))
@@ -162,26 +161,36 @@ def createHeroVisualization(savePath):
 
     # ── Left: relative PES + per-distance trajectories ────────────────────────
     THETA, DIST = np.meshgrid(thetas, distances)
-    cf = axLeft.contourf(THETA, DIST, relGrid, levels=30, cmap=pesCmap)
+    # PowerNorm(gamma<1) expands the dark/near-zero region so the well bottom
+    # shows color gradation instead of a uniformly black valley.
+    pesNorm = mcolors.PowerNorm(gamma=0.40, vmin=0.0, vmax=float(relGrid.max()))
+    cf = axLeft.contourf(THETA, DIST, relGrid, levels=30, cmap=pesCmap, norm=pesNorm)
     axLeft.contour(THETA, DIST, relGrid, levels=30, colors="k", alpha=0.08, linewidths=0.4)
     cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02)
     cbar.set_label("E \u2212 E\u2090\u2091\u2099(R)  (Hartree)", fontsize=11)
 
     for tPath, R in trajData:
-        lineColor = distCmap(norm(R))
-        axLeft.plot(tPath, [R] * len(tPath), color=lineColor, linewidth=2.0, alpha=0.85, zorder=3)
-        # Arrow at 60% along the path to show direction of descent
-        arrowIdx = int(0.60 * len(tPath))
-        axLeft.annotate(
-            "",
-            xy=(tPath[arrowIdx + 1], R),
-            xytext=(tPath[arrowIdx], R),
-            arrowprops=dict(arrowstyle="-|>", color=lineColor, lw=1.8),
-            zorder=4,
-        )
-
-    sm = plt.cm.ScalarMappable(cmap=distCmap, norm=norm)
-    sm.set_array([])
+        # White piecewise: each GD step is a discrete segment with a 25% gap.
+        for i in range(len(tPath) - 1):
+            t0, t1 = tPath[i], tPath[i + 1]
+            if abs(t1 - t0) > np.pi:  # skip wrap-around jump
+                continue
+            tEnd = t0 + 0.75 * (t1 - t0)
+            axLeft.plot(
+                [t0, tEnd], [R, R],
+                color="white", linewidth=2.0, alpha=0.90,
+                zorder=3, solid_capstyle="butt",
+            )
+        # White arrow at midpoint to show descent direction
+        midIdx = max(0, len(tPath) // 2 - 1)
+        if midIdx + 1 < len(tPath) and abs(tPath[midIdx + 1] - tPath[midIdx]) <= np.pi:
+            axLeft.annotate(
+                "",
+                xy=(tPath[midIdx + 1], R),
+                xytext=(tPath[midIdx], R),
+                arrowprops=dict(arrowstyle="-|>", color="white", lw=2.0, mutation_scale=14),
+                zorder=5,
+            )
 
     axLeft.set_xlabel("Ansatz Parameter \u03b8", fontsize=12)
     axLeft.set_ylabel("Bond Distance (\u00c5)", fontsize=12)

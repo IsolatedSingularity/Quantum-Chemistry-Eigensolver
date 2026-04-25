@@ -8,6 +8,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns  # noqa: F401  # registers mako colormap with matplotlib
 
 
 def create_molecular_orbital_visualization(save_path):
@@ -49,7 +50,7 @@ def create_molecular_orbital_visualization(save_path):
     # Plot 1s orbital of first H atom
     ax = axes[0, 0]
     ax.set_title("H₁ 1s Atomic Orbital", fontsize=14)
-    contour = ax.contourf(X, Y, h1_1s, 20, cmap="coolwarm")
+    contour = ax.contourf(X, Y, h1_1s, 20, cmap="mako")
     ax.set_xlabel("X (Å)", fontsize=12)
     ax.set_ylabel("Y (Å)", fontsize=12)
     ax.set_aspect("equal")
@@ -59,7 +60,7 @@ def create_molecular_orbital_visualization(save_path):
     # Plot 1s orbital of second H atom
     ax = axes[0, 1]
     ax.set_title("H₂ 1s Atomic Orbital", fontsize=14)
-    contour = ax.contourf(X, Y, h2_1s, 20, cmap="coolwarm")
+    contour = ax.contourf(X, Y, h2_1s, 20, cmap="mako")
     ax.set_xlabel("X (Å)", fontsize=12)
     ax.set_ylabel("Y (Å)", fontsize=12)
     ax.set_aspect("equal")
@@ -69,7 +70,7 @@ def create_molecular_orbital_visualization(save_path):
     # Plot bonding molecular orbital
     ax = axes[1, 0]
     ax.set_title("σ Bonding Molecular Orbital", fontsize=14)
-    contour = ax.contourf(X, Y, bonding_mo, 20, cmap="coolwarm")
+    contour = ax.contourf(X, Y, bonding_mo, 20, cmap="mako")
     ax.set_xlabel("X (Å)", fontsize=12)
     ax.set_ylabel("Y (Å)", fontsize=12)
     ax.set_aspect("equal")
@@ -84,7 +85,7 @@ def create_molecular_orbital_visualization(save_path):
     # Plot antibonding molecular orbital
     ax = axes[1, 1]
     ax.set_title("σ* Antibonding Molecular Orbital", fontsize=14)
-    contour = ax.contourf(X, Y, antibonding_mo, 20, cmap="coolwarm")
+    contour = ax.contourf(X, Y, antibonding_mo, 20, cmap="mako")
     ax.set_xlabel("X (Å)", fontsize=12)
     ax.set_ylabel("Y (Å)", fontsize=12)
     ax.set_aspect("equal")
