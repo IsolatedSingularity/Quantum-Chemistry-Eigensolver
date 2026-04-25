@@ -3,14 +3,12 @@ VQE Hero Visualization
 
 Hero plot for the Quantum Chemistry Eigensolver.
 
-Left panel: filled contour of E(theta, R) - E_min(R) across all 34 bond
-distances, revealing how the well depth and landscape shape vary with geometry.
-Gradient-descent trajectories are shown at 8 sampled bond distances, starting
-from theta=pi/2. Convergence is fastest near equilibrium (deep well, large
-gradient) and slowest at dissociation (shallow well, small coupling) -- a
-physically meaningful non-trivial pattern. Color scheme matches
-vqe_energy_curves.py: cubehelix palette for bond-distance trajectory coloring,
-mako colormap for the PES background.
+Left panel: filled contour of E(theta, R) - E_0 across all 34 bond distances
+(absolute energy shifted to the global minimum), revealing a single 2D well
+near (theta_eq, R_eq ≈ 0.74 Å). A single 2D gradient-descent trajectory is
+overlaid, with each iteration drawn as its own arrow segment so the descent
+is visually explicit. Color: mako (matches vqe_energy_curves.py and
+h2_molecular_orbitals.py).
 
 Right panel: energy error |E - E_0| (log scale) vs VQE iteration at three
 geometries (compressed, equilibrium, stretched). Uses mako palette.
@@ -23,6 +21,7 @@ from pathlib import Path
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 from scipy.interpolate import RegularGridInterpolator
 
 parent_dir = Path(__file__).resolve().parent.parent
@@ -100,16 +99,19 @@ def createHeroVisualization(savePath):
     for dIdx, (h_mat, nuc) in enumerate(zip(hMats, nucs)):
         energyGrid[dIdx] = _energyRow(h_mat, nuc, ansatz, thetas)
 
-    # Relative landscape: E(theta, R) - E_min(R)  highlights how well-depth
-    # varies with bond distance (deep at equilibrium, shallow at dissociation)
-    relGrid = energyGrid - energyGrid.min(axis=1, keepdims=True)
+    # Absolute landscape: E(theta, R) shifted by the global minimum. Unlike
+    # E - E_min(R) (which produces 34 stacked horizontal wells), this gives a
+    # true 2D potential with a single global basin near (theta_eq, R_eq) and
+    # nuclear-repulsion + dissociation cliffs at the edges -- a non-trivial
+    # surface for the trajectory to navigate.
+    absMin = float(energyGrid.min())
+    pesGrid = energyGrid - absMin
 
-    # ── 2D gradient-descent trajectories ─────────────────────────────────────
-    # Numerical gradients over the absolute energy grid let each path move in
-    # BOTH theta AND R, tracing diagonal curves that converge toward the global
-    # minimum at (theta_eq, R_eq ≈ 0.74 Å). This makes the iterative steps
-    # visually connected and non-horizontal.
-    print("Computing 2D gradient-descent trajectories...")
+    # ── 2D gradient-descent trajectory (single non-trivial path) ─────────────
+    # Numerical gradients over the energy grid let the path move in BOTH theta
+    # AND R, tracing a curve from a stretched, off-equilibrium start toward
+    # the global minimum at (theta_eq, R_eq ≈ 0.74 Å).
+    print("Computing 2D gradient-descent trajectory...")
     lr = 0.06  # kept for convergence section
 
     dEdTheta2d = np.gradient(energyGrid, thetas, axis=1)
@@ -123,31 +125,22 @@ def createHeroVisualization(savePath):
         method="linear", bounds_error=False, fill_value=None,
     )
 
-    nD = len(distances)
-    startPts = [
-        ( np.pi * 0.90,  distances[-1]),
-        (-np.pi * 0.90,  distances[-1]),
-        ( np.pi * 0.85,  distances[int(nD * 0.65)]),
-        (-np.pi * 0.70,  distances[int(nD * 0.65)]),
-        ( np.pi * 0.80,  distances[2]),   # compressed: large R-gradient
-        (-np.pi * 0.75,  distances[2]),   # compressed: large R-gradient
-        ( np.pi * 0.60,  distances[4]),
-        (-np.pi * 0.55,  distances[4]),
-    ]
-    lrTheta, lrR, nSteps2d = 0.30, 0.030, 45
-    trajData = []  # list of (tPath_array, RPath_array)
-
-    for t0, R0 in startPts:
-        t, R = float(t0), float(R0)
-        tPath, RPath = [t], [R]
-        for _ in range(nSteps2d):
-            gt = float(gradThetaFn([[R, t]]).item())
-            gR = float(gradRFn([[R, t]]).item())
-            t = float(((t - lrTheta * gt + np.pi) % (2.0 * np.pi)) - np.pi)
-            R = float(np.clip(R - lrR * gR, distances[0], distances[-1]))
-            tPath.append(t)
-            RPath.append(R)
-        trajData.append((np.array(tPath), np.array(RPath)))
+    # Single trajectory: start at compressed bond + off-axis theta. Both
+    # components of the gradient are large here, so the path sweeps clearly
+    # diagonally across the well toward (theta_eq, R_eq ≈ 0.74 Å).
+    t0, R0 = np.pi * 0.75, distances[1]  # ≈ (2.36, 0.35 Å)
+    lrTheta, lrR, nSteps2d = 0.30, 0.060, 28
+    t, R = float(t0), float(R0)
+    tPath, RPath = [t], [R]
+    for _ in range(nSteps2d):
+        gt = float(gradThetaFn([[R, t]]).item())
+        gR = float(gradRFn([[R, t]]).item())
+        t = float(((t - lrTheta * gt + np.pi) % (2.0 * np.pi)) - np.pi)
+        R = float(np.clip(R - lrR * gR, distances[0], distances[-1]))
+        tPath.append(t)
+        RPath.append(R)
+    tPath = np.array(tPath)
+    RPath = np.array(RPath)
 
     # ── Convergence curves at 3 representative geometries ─────────────────────
     print("Computing convergence curves...")
@@ -169,10 +162,9 @@ def createHeroVisualization(savePath):
             steps.append(_energyAt(h_mat, nuc, ansatz, t))
         convEnergy.append(np.array(steps))
 
-    # ── Color palettes ────────────────────────────────────────────────────────
-    # inferno: black→deep-purple→red→orange→yellow. Multi-hue, non-trivial.
-    pesCmap = plt.cm.inferno
-    convPalette = [plt.cm.inferno(v) for v in np.linspace(0.15, 0.90, 5)]
+    # ── Color palettes -- match vqe_energy_curves.py / h2_molecular_orbitals.py ──
+    pesCmap = sns.color_palette("mako", as_cmap=True)
+    convPalette = sns.color_palette("mako", n_colors=5)
 
     # ── Figure ────────────────────────────────────────────────────────────────
     fig = plt.figure(figsize=(16, 7))
@@ -182,56 +174,49 @@ def createHeroVisualization(savePath):
 
     fig.suptitle("VQE Gradient Descent on H\u2082 Potential Energy Surface", fontsize=15)
 
-    # ── Left: relative PES + per-distance trajectories ────────────────────────
+    # ── Left: absolute PES + single trajectory ────────────────────────────────
     THETA, DIST = np.meshgrid(thetas, distances)
-    # LogNorm gives smooth log-spaced color transition across the full dynamic
-    # range: near-minimum (small relGrid) → dark navy; edges (large) → teal.
-    # Avoids the sharp band that PowerNorm produced in the midrange.
-    # PowerNorm(gamma=3): f(x)=x^3 -- spends ~80% of the colormap on the bottom
-    # 50% of the energy range, so the dark region dominates the plot.
-    # Clip vmax at 1.5 Hartree so extreme compressed-geometry values don't
-    # expand the scale; `extend='max'` assigns them the top (bright) color.
-    pesVmax = min(float(relGrid.max()), 1.5)
-    relGridClip = np.clip(relGrid, 0, pesVmax)
-    # Cube-root level spacing: dense levels near 0 (dark) → colour transitions
-    # span a wide area at low energy; sparse near pesVmax → brief bright region.
-    # Equivalent to PowerNorm(gamma=3) but avoids overflow in matplotlib internals.
-    levFrac = np.linspace(0, 1, 60) ** (1.0 / 3.0)
-    pesLevels = levFrac * pesVmax
-    cf = axLeft.contourf(THETA, DIST, relGridClip, levels=pesLevels, cmap=pesCmap, extend="max")
-    axLeft.contour(THETA, DIST, relGridClip, levels=pesLevels[::5], colors="k", alpha=0.06, linewidths=0.3)
+    # Linear levels on the shifted absolute energy: produces a single deep
+    # mako-navy basin near (theta_eq, R_eq) that smoothly brightens through
+    # teal to pale green at the dissociation/repulsion cliffs -- a true 2D
+    # well, not stacked horizontal bands. Clip vmax to 1.0 Hartree so the
+    # colour range is dominated by the chemically interesting region (±100 mHa
+    # around the well), not the nuclear-repulsion blow-up at small R.
+    pesVmax = min(float(pesGrid.max()), 1.0)
+    pesGridClip = np.clip(pesGrid, 0.0, pesVmax)
+    pesLevels = np.linspace(0.0, pesVmax, 40)
+    cf = axLeft.contourf(THETA, DIST, pesGridClip, levels=pesLevels, cmap=pesCmap, extend="max")
+    # Thin contour lines highlight the well structure (non-trivial pattern)
+    axLeft.contour(THETA, DIST, pesGridClip, levels=pesLevels[::4], colors="white", alpha=0.18, linewidths=0.5)
     cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02)
-    cbar.set_label("E \u2212 E\u2090\u2091\u2099(R)  (Hartree)", fontsize=11)
+    cbar.set_label("E \u2212 E\u2080  (Hartree)", fontsize=11)
 
-    for tPath, RPath in trajData:
-        # Split at theta wrap-around jumps (> pi) and plot each segment as a
-        # single polyline so there are no gaps between steps.
-        breaks = [i for i in range(len(tPath) - 1) if abs(tPath[i + 1] - tPath[i]) > np.pi]
-        splits = [0] + [b + 1 for b in breaks] + [len(tPath)]
-        for seg_s, seg_e in zip(splits[:-1], splits[1:]):
-            if seg_e - seg_s < 2:
-                continue
-            axLeft.plot(
-                tPath[seg_s:seg_e], RPath[seg_s:seg_e],
-                color="white", linewidth=2.0, alpha=0.85,
-                zorder=3, solid_capstyle="round", solid_joinstyle="round",
-            )
-        # Start marker
-        axLeft.scatter([tPath[0]], [RPath[0]], color="white", s=25, zorder=4, alpha=0.90, linewidths=0)
-        # Directional arrow near the end of the path
-        endIdx = len(tPath) - 2
-        if abs(tPath[endIdx + 1] - tPath[endIdx]) <= np.pi:
-            axLeft.annotate(
-                "",
-                xy=(tPath[endIdx + 1], RPath[endIdx + 1]),
-                xytext=(tPath[endIdx], RPath[endIdx]),
-                arrowprops=dict(arrowstyle="-|>", color="white", lw=2.0, mutation_scale=14),
-                zorder=5,
-            )
+    # Single trajectory: each step rendered as its own arrow segment so the
+    # iterative descent is visually explicit.
+    for i in range(len(tPath) - 1):
+        if abs(tPath[i + 1] - tPath[i]) > np.pi:  # skip wrap-around
+            continue
+        axLeft.annotate(
+            "",
+            xy=(tPath[i + 1], RPath[i + 1]),
+            xytext=(tPath[i], RPath[i]),
+            arrowprops=dict(
+                arrowstyle="-|>", color="white", lw=1.8, mutation_scale=12,
+                alpha=0.95,
+            ),
+            zorder=4,
+        )
+    # Vertex dots so segment joins read crisply
+    axLeft.scatter(tPath, RPath, color="white", s=18, zorder=5, alpha=0.95, linewidths=0)
+    # Larger start marker
+    axLeft.scatter(
+        [tPath[0]], [RPath[0]], color="white", s=80, zorder=6,
+        edgecolors="black", linewidths=1.2, marker="o",
+    )
 
     axLeft.set_xlabel("Ansatz Parameter \u03b8", fontsize=12)
     axLeft.set_ylabel("Bond Distance (\u00c5)", fontsize=12)
-    axLeft.set_title("Energy Above Minimum vs. Ansatz Parameter", fontsize=13)
+    axLeft.set_title("Energy Above Global Minimum", fontsize=13)
 
     # ── Right: convergence curves (log scale) ─────────────────────────────────
     distLabels = [f"d = {distances[i]:.2f} \u00c5" for i in convIndices]
