@@ -58,14 +58,7 @@ def create_vqe_energy_curves_visualization(save_path):
     thetas = np.linspace(-np.pi, np.pi, 200)
 
     # Color palettes
-    dist_cmap = sns.cubehelix_palette(
-        start=2,
-        rot=0,
-        dark=0.15,
-        light=0.85,
-        reverse=True,
-        as_cmap=True,
-    )
+    dist_cmap = sns.color_palette("mako", as_cmap=True)
     iter_cmap = sns.color_palette("mako", as_cmap=True)
 
     # Precompute Hamiltonians and energies
@@ -92,7 +85,7 @@ def create_vqe_energy_curves_visualization(save_path):
         figsize=(14, 7),
         gridspec_kw={"width_ratios": [1.2, 1]},
     )
-    fig.suptitle("VQE Energy Landscape (Real Data)", fontsize=18)
+    fig.suptitle("VQE Energy Landscape", fontsize=18)
 
     # Left panel: energy vs theta for selected distances
     sample_indices = np.linspace(0, len(distances) - 1, 8, dtype=int)

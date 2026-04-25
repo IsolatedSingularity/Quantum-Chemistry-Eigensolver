@@ -140,7 +140,7 @@ def createHeroVisualization(savePath):
         convGround.append(ground)
         t = np.pi / 2.0
         steps = [_energyAt(h_mat, nuc, ansatz, t)]
-        for _ in range(38):
+        for _ in range(499):
             g = _psrGradient(h_mat, nuc, ansatz, t)
             t = t - lr * g
             t = float(((t + np.pi) % (2.0 * np.pi)) - np.pi)
@@ -162,24 +162,36 @@ def createHeroVisualization(savePath):
     # ── Left: relative PES + per-distance trajectories ────────────────────────
     THETA, DIST = np.meshgrid(thetas, distances)
     # PowerNorm(gamma<1) expands the dark/near-zero region so the well bottom
-    # shows color gradation instead of a uniformly black valley.
-    pesNorm = mcolors.PowerNorm(gamma=0.40, vmin=0.0, vmax=float(relGrid.max()))
-    cf = axLeft.contourf(THETA, DIST, relGrid, levels=30, cmap=pesCmap, norm=pesNorm)
-    axLeft.contour(THETA, DIST, relGrid, levels=30, colors="k", alpha=0.08, linewidths=0.4)
-    cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02)
+    # shows gradation. vmax capped at 92nd-percentile to prevent extreme
+    # compressed-geometry values from crushing the midrange into a flat band.
+    pesVmax = float(np.percentile(relGrid, 92))
+    pesNorm = mcolors.PowerNorm(gamma=0.55, vmin=0.0, vmax=pesVmax)
+    cf = axLeft.contourf(THETA, DIST, relGrid, levels=40, cmap=pesCmap, norm=pesNorm)
+    axLeft.contour(THETA, DIST, relGrid, levels=40, colors="k", alpha=0.06, linewidths=0.3)
+    cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02, extend="max")
     cbar.set_label("E \u2212 E\u2090\u2091\u2099(R)  (Hartree)", fontsize=11)
 
     for tPath, R in trajData:
-        # White piecewise: each GD step is a discrete segment with a 25% gap.
+        # Connected piecewise segments: each GD step is a full-length segment
+        # so the iterative path is visible as a chain of connected steps.
         for i in range(len(tPath) - 1):
             t0, t1 = tPath[i], tPath[i + 1]
             if abs(t1 - t0) > np.pi:  # skip wrap-around jump
                 continue
-            tEnd = t0 + 0.75 * (t1 - t0)
             axLeft.plot(
-                [t0, tEnd], [R, R],
+                [t0, t1], [R, R],
                 color="white", linewidth=2.0, alpha=0.90,
-                zorder=3, solid_capstyle="butt",
+                zorder=3, solid_capstyle="round",
+            )
+        # Small dots at each step boundary to mark discrete iterations
+        dotThetas = [
+            tPath[i + 1] for i in range(len(tPath) - 1)
+            if abs(tPath[i + 1] - tPath[i]) <= np.pi
+        ]
+        if dotThetas:
+            axLeft.scatter(
+                dotThetas, [R] * len(dotThetas),
+                color="white", s=7, zorder=4, alpha=0.70, linewidths=0,
             )
         # White arrow at midpoint to show descent direction
         midIdx = max(0, len(tPath) // 2 - 1)
