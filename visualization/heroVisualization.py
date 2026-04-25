@@ -20,11 +20,9 @@ import os
 import sys
 from pathlib import Path
 
-import matplotlib.colors as mcolors
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 from scipy.interpolate import RegularGridInterpolator
 
 parent_dir = Path(__file__).resolve().parent.parent
@@ -112,7 +110,6 @@ def createHeroVisualization(savePath):
     # minimum at (theta_eq, R_eq ≈ 0.74 Å). This makes the iterative steps
     # visually connected and non-horizontal.
     print("Computing 2D gradient-descent trajectories...")
-    sampleIndices = np.linspace(0, len(distances) - 1, 8, dtype=int)
     lr = 0.06  # kept for convergence section
 
     dEdTheta2d = np.gradient(energyGrid, thetas, axis=1)
@@ -154,9 +151,7 @@ def createHeroVisualization(savePath):
 
     # ── Convergence curves at 3 representative geometries ─────────────────────
     print("Computing convergence curves...")
-    eqDistIdx = int(np.argmin(energyGrid.min(axis=1)))
-    # 5 evenly spaced geometries -- avoids duplicates that occur when eqDistIdx
-    # coincides with one of the sampleIndices values.
+    # 5 evenly spaced geometries -- avoids duplicates.
     convIndices = list(np.linspace(0, len(distances) - 1, 5, dtype=int))
     convEnergy = []
     convGround = []
@@ -174,9 +169,10 @@ def createHeroVisualization(savePath):
             steps.append(_energyAt(h_mat, nuc, ansatz, t))
         convEnergy.append(np.array(steps))
 
-    # ── Color palettes -- exact match to vqe_energy_curves.py ─────────────────
-    pesCmap = sns.color_palette("mako", as_cmap=True)
-    convPalette = sns.color_palette("mako", n_colors=5)
+    # ── Color palettes ────────────────────────────────────────────────────────
+    # inferno: black→deep-purple→red→orange→yellow. Multi-hue, non-trivial.
+    pesCmap = plt.cm.inferno
+    convPalette = [plt.cm.inferno(v) for v in np.linspace(0.15, 0.90, 5)]
 
     # ── Figure ────────────────────────────────────────────────────────────────
     fig = plt.figure(figsize=(16, 7))
@@ -191,42 +187,44 @@ def createHeroVisualization(savePath):
     # LogNorm gives smooth log-spaced color transition across the full dynamic
     # range: near-minimum (small relGrid) → dark navy; edges (large) → teal.
     # Avoids the sharp band that PowerNorm produced in the midrange.
-    relGridClip = np.clip(relGrid, 1e-3, None)
-    pesVmax = float(relGrid.max())
-    pesNorm = mcolors.LogNorm(vmin=1e-3, vmax=pesVmax)
-    pesLevels = np.geomspace(1e-3, pesVmax, 45)
-    cf = axLeft.contourf(THETA, DIST, relGridClip, levels=pesLevels, cmap=pesCmap, norm=pesNorm)
+    # PowerNorm(gamma=3): f(x)=x^3 -- spends ~80% of the colormap on the bottom
+    # 50% of the energy range, so the dark region dominates the plot.
+    # Clip vmax at 1.5 Hartree so extreme compressed-geometry values don't
+    # expand the scale; `extend='max'` assigns them the top (bright) color.
+    pesVmax = min(float(relGrid.max()), 1.5)
+    relGridClip = np.clip(relGrid, 0, pesVmax)
+    # Cube-root level spacing: dense levels near 0 (dark) → colour transitions
+    # span a wide area at low energy; sparse near pesVmax → brief bright region.
+    # Equivalent to PowerNorm(gamma=3) but avoids overflow in matplotlib internals.
+    levFrac = np.linspace(0, 1, 60) ** (1.0 / 3.0)
+    pesLevels = levFrac * pesVmax
+    cf = axLeft.contourf(THETA, DIST, relGridClip, levels=pesLevels, cmap=pesCmap, extend="max")
     axLeft.contour(THETA, DIST, relGridClip, levels=pesLevels[::5], colors="k", alpha=0.06, linewidths=0.3)
     cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02)
     cbar.set_label("E \u2212 E\u2090\u2091\u2099(R)  (Hartree)", fontsize=11)
 
     for tPath, RPath in trajData:
-        # 2D connected segments: each step moves in both theta AND R space.
-        for i in range(len(tPath) - 1):
-            if abs(tPath[i + 1] - tPath[i]) > np.pi:  # skip wrap-around
+        # Split at theta wrap-around jumps (> pi) and plot each segment as a
+        # single polyline so there are no gaps between steps.
+        breaks = [i for i in range(len(tPath) - 1) if abs(tPath[i + 1] - tPath[i]) > np.pi]
+        splits = [0] + [b + 1 for b in breaks] + [len(tPath)]
+        for seg_s, seg_e in zip(splits[:-1], splits[1:]):
+            if seg_e - seg_s < 2:
                 continue
             axLeft.plot(
-                [tPath[i], tPath[i + 1]], [RPath[i], RPath[i + 1]],
-                color="white", linewidth=2.0, alpha=0.90,
-                zorder=3, solid_capstyle="round",
+                tPath[seg_s:seg_e], RPath[seg_s:seg_e],
+                color="white", linewidth=2.0, alpha=0.85,
+                zorder=3, solid_capstyle="round", solid_joinstyle="round",
             )
-        # Dots at each step boundary
-        validIdx = np.array([
-            i + 1 for i in range(len(tPath) - 1)
-            if abs(tPath[i + 1] - tPath[i]) <= np.pi
-        ])
-        if len(validIdx):
-            axLeft.scatter(
-                tPath[validIdx], RPath[validIdx],
-                color="white", s=7, zorder=4, alpha=0.70, linewidths=0,
-            )
-        # Directional arrow at midpoint
-        midIdx = max(0, len(tPath) // 2 - 1)
-        if midIdx + 1 < len(tPath) and abs(tPath[midIdx + 1] - tPath[midIdx]) <= np.pi:
+        # Start marker
+        axLeft.scatter([tPath[0]], [RPath[0]], color="white", s=25, zorder=4, alpha=0.90, linewidths=0)
+        # Directional arrow near the end of the path
+        endIdx = len(tPath) - 2
+        if abs(tPath[endIdx + 1] - tPath[endIdx]) <= np.pi:
             axLeft.annotate(
                 "",
-                xy=(tPath[midIdx + 1], RPath[midIdx + 1]),
-                xytext=(tPath[midIdx], RPath[midIdx]),
+                xy=(tPath[endIdx + 1], RPath[endIdx + 1]),
+                xytext=(tPath[endIdx], RPath[endIdx]),
                 arrowprops=dict(arrowstyle="-|>", color="white", lw=2.0, mutation_scale=14),
                 zorder=5,
             )
