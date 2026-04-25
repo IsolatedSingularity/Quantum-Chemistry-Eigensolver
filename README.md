@@ -175,6 +175,12 @@ VQE energy landscape across 8 sampled bond distances (left) and the full dissoci
   <img src="visualization/vqe_energy_curves.png" alt="VQE Energy Optimization Curves" width="800">
 </p>
 
+VQE potential energy surface across all 34 bond distances and the ansatz parameter, with five warm-start gradient-descent trajectories converging toward the ground-state valley from different initial configurations. Right panel: energy error on a log scale at three geometries (compressed, equilibrium, stretched).
+
+<p align="center">
+  <img src="visualization/vqe_hero.png" alt="VQE Potential Energy Surface with optimization trajectories" width="900">
+</p>
+
 ## Next Steps
 
 - [ ] Implement more sophisticated ansatz circuits, such as the Unitary Coupled Cluster (UCC) ansatz for better accuracy.
