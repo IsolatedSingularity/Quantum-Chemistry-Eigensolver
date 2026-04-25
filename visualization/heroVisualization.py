@@ -117,12 +117,18 @@ def createHeroVisualization(savePath):
     dEdTheta2d = np.gradient(energyGrid, thetas, axis=1)
     dEdR2d = np.gradient(energyGrid, distances, axis=0)
     gradThetaFn = RegularGridInterpolator(
-        (distances, thetas), dEdTheta2d,
-        method="linear", bounds_error=False, fill_value=None,
+        (distances, thetas),
+        dEdTheta2d,
+        method="linear",
+        bounds_error=False,
+        fill_value=None,
     )
     gradRFn = RegularGridInterpolator(
-        (distances, thetas), dEdR2d,
-        method="linear", bounds_error=False, fill_value=None,
+        (distances, thetas),
+        dEdR2d,
+        method="linear",
+        bounds_error=False,
+        fill_value=None,
     )
 
     # Single trajectory: start at compressed bond + off-axis theta. Both
@@ -201,7 +207,10 @@ def createHeroVisualization(savePath):
             xy=(tPath[i + 1], RPath[i + 1]),
             xytext=(tPath[i], RPath[i]),
             arrowprops=dict(
-                arrowstyle="-|>", color="white", lw=1.8, mutation_scale=12,
+                arrowstyle="-|>",
+                color="white",
+                lw=1.8,
+                mutation_scale=12,
                 alpha=0.95,
             ),
             zorder=4,
@@ -210,8 +219,14 @@ def createHeroVisualization(savePath):
     axLeft.scatter(tPath, RPath, color="white", s=18, zorder=5, alpha=0.95, linewidths=0)
     # Larger start marker
     axLeft.scatter(
-        [tPath[0]], [RPath[0]], color="white", s=80, zorder=6,
-        edgecolors="black", linewidths=1.2, marker="o",
+        [tPath[0]],
+        [RPath[0]],
+        color="white",
+        s=80,
+        zorder=6,
+        edgecolors="black",
+        linewidths=1.2,
+        marker="o",
     )
 
     axLeft.set_xlabel("Ansatz Parameter \u03b8", fontsize=12)
