@@ -175,7 +175,7 @@ VQE energy landscape across 8 sampled bond distances (left) and the full dissoci
   <img src="visualization/vqe_energy_curves.png" alt="VQE Energy Optimization Curves" width="800">
 </p>
 
-VQE potential energy surface across all 34 bond distances and the ansatz parameter, with five warm-start gradient-descent trajectories converging toward the ground-state valley from different initial configurations. Right panel: energy error on a log scale at three geometries (compressed, equilibrium, stretched).
+VQE potential energy surface showing E(theta, R) - E_min(R) across all 34 bond distances. Gradient-descent trajectories (parameter-shift rule) are shown at 8 sampled geometries: paths are short near equilibrium where the well is deep and converge slowly toward dissociation where coupling weakens. Right panel: energy error on a log scale at three geometries (compressed, equilibrium, stretched).
 
 <p align="center">
   <img src="visualization/vqe_hero.png" alt="VQE Potential Energy Surface with optimization trajectories" width="900">
