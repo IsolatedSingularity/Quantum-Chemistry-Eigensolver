@@ -11,7 +11,7 @@
 
 
 <p align="center">
-  <img src="visualization/vqe_energy_curves.png" alt="VQE Energy Optimization Curves" width="800">
+  <img src="visualization/vqe_hero.png" alt="VQE Potential Energy Landscape with optimization path" width="900">
 </p>
 
 ## Objective
