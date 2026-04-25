@@ -25,6 +25,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from scipy.interpolate import RegularGridInterpolator
 
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
@@ -105,32 +106,58 @@ def createHeroVisualization(savePath):
     # varies with bond distance (deep at equilibrium, shallow at dissociation)
     relGrid = energyGrid - energyGrid.min(axis=1, keepdims=True)
 
-    # ── VQE trajectories at 8 sampled bond distances ──────────────────────────
-    # Each trajectory starts at theta=pi/2 (maximum gradient, clearly away from
-    # both the minimum and the saddle). Convergence rate is proportional to the
-    # coupling |B(R)|, which peaks at equilibrium and decays toward dissociation,
-    # so paths are short near R_eq and long near R_max -- physically revealing.
-    print("Computing VQE trajectories...")
+    # ── 2D gradient-descent trajectories ─────────────────────────────────────
+    # Numerical gradients over the absolute energy grid let each path move in
+    # BOTH theta AND R, tracing diagonal curves that converge toward the global
+    # minimum at (theta_eq, R_eq ≈ 0.74 Å). This makes the iterative steps
+    # visually connected and non-horizontal.
+    print("Computing 2D gradient-descent trajectories...")
     sampleIndices = np.linspace(0, len(distances) - 1, 8, dtype=int)
-    lr = 0.06
-    nSteps = 28
-    trajData = []  # list of (theta_path, R)
+    lr = 0.06  # kept for convergence section
 
-    for idx in sampleIndices:
-        h_mat, nuc = hMats[idx], nucs[idx]
-        t = np.pi / 2.0
-        tPath = [t]
-        for _ in range(nSteps):
-            g = _psrGradient(h_mat, nuc, ansatz, t)
-            t = t - lr * g
-            t = float(((t + np.pi) % (2.0 * np.pi)) - np.pi)
+    dEdTheta2d = np.gradient(energyGrid, thetas, axis=1)
+    dEdR2d = np.gradient(energyGrid, distances, axis=0)
+    gradThetaFn = RegularGridInterpolator(
+        (distances, thetas), dEdTheta2d,
+        method="linear", bounds_error=False, fill_value=None,
+    )
+    gradRFn = RegularGridInterpolator(
+        (distances, thetas), dEdR2d,
+        method="linear", bounds_error=False, fill_value=None,
+    )
+
+    nD = len(distances)
+    startPts = [
+        ( np.pi * 0.90,  distances[-1]),
+        (-np.pi * 0.90,  distances[-1]),
+        ( np.pi * 0.85,  distances[int(nD * 0.65)]),
+        (-np.pi * 0.70,  distances[int(nD * 0.65)]),
+        ( np.pi * 0.80,  distances[2]),   # compressed: large R-gradient
+        (-np.pi * 0.75,  distances[2]),   # compressed: large R-gradient
+        ( np.pi * 0.60,  distances[4]),
+        (-np.pi * 0.55,  distances[4]),
+    ]
+    lrTheta, lrR, nSteps2d = 0.30, 0.030, 45
+    trajData = []  # list of (tPath_array, RPath_array)
+
+    for t0, R0 in startPts:
+        t, R = float(t0), float(R0)
+        tPath, RPath = [t], [R]
+        for _ in range(nSteps2d):
+            gt = float(gradThetaFn([[R, t]]).item())
+            gR = float(gradRFn([[R, t]]).item())
+            t = float(((t - lrTheta * gt + np.pi) % (2.0 * np.pi)) - np.pi)
+            R = float(np.clip(R - lrR * gR, distances[0], distances[-1]))
             tPath.append(t)
-        trajData.append((np.array(tPath), distances[idx]))
+            RPath.append(R)
+        trajData.append((np.array(tPath), np.array(RPath)))
 
     # ── Convergence curves at 3 representative geometries ─────────────────────
     print("Computing convergence curves...")
     eqDistIdx = int(np.argmin(energyGrid.min(axis=1)))
-    convIndices = [sampleIndices[0], eqDistIdx, sampleIndices[-1]]
+    # 5 evenly spaced geometries -- avoids duplicates that occur when eqDistIdx
+    # coincides with one of the sampleIndices values.
+    convIndices = list(np.linspace(0, len(distances) - 1, 5, dtype=int))
     convEnergy = []
     convGround = []
 
@@ -140,7 +167,7 @@ def createHeroVisualization(savePath):
         convGround.append(ground)
         t = np.pi / 2.0
         steps = [_energyAt(h_mat, nuc, ansatz, t)]
-        for _ in range(499):
+        for _ in range(299):
             g = _psrGradient(h_mat, nuc, ansatz, t)
             t = t - lr * g
             t = float(((t + np.pi) % (2.0 * np.pi)) - np.pi)
@@ -149,7 +176,7 @@ def createHeroVisualization(savePath):
 
     # ── Color palettes -- exact match to vqe_energy_curves.py ─────────────────
     pesCmap = sns.color_palette("mako", as_cmap=True)
-    convPalette = sns.color_palette("mako", n_colors=3)
+    convPalette = sns.color_palette("mako", n_colors=5)
 
     # ── Figure ────────────────────────────────────────────────────────────────
     fig = plt.figure(figsize=(16, 7))
@@ -161,45 +188,45 @@ def createHeroVisualization(savePath):
 
     # ── Left: relative PES + per-distance trajectories ────────────────────────
     THETA, DIST = np.meshgrid(thetas, distances)
-    # PowerNorm(gamma<1) expands the dark/near-zero region so the well bottom
-    # shows gradation. vmax capped at 92nd-percentile to prevent extreme
-    # compressed-geometry values from crushing the midrange into a flat band.
-    pesVmax = float(np.percentile(relGrid, 92))
-    pesNorm = mcolors.PowerNorm(gamma=0.55, vmin=0.0, vmax=pesVmax)
-    cf = axLeft.contourf(THETA, DIST, relGrid, levels=40, cmap=pesCmap, norm=pesNorm)
-    axLeft.contour(THETA, DIST, relGrid, levels=40, colors="k", alpha=0.06, linewidths=0.3)
-    cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02, extend="max")
+    # LogNorm gives smooth log-spaced color transition across the full dynamic
+    # range: near-minimum (small relGrid) → dark navy; edges (large) → teal.
+    # Avoids the sharp band that PowerNorm produced in the midrange.
+    relGridClip = np.clip(relGrid, 1e-3, None)
+    pesVmax = float(relGrid.max())
+    pesNorm = mcolors.LogNorm(vmin=1e-3, vmax=pesVmax)
+    pesLevels = np.geomspace(1e-3, pesVmax, 45)
+    cf = axLeft.contourf(THETA, DIST, relGridClip, levels=pesLevels, cmap=pesCmap, norm=pesNorm)
+    axLeft.contour(THETA, DIST, relGridClip, levels=pesLevels[::5], colors="k", alpha=0.06, linewidths=0.3)
+    cbar = fig.colorbar(cf, ax=axLeft, fraction=0.035, pad=0.02)
     cbar.set_label("E \u2212 E\u2090\u2091\u2099(R)  (Hartree)", fontsize=11)
 
-    for tPath, R in trajData:
-        # Connected piecewise segments: each GD step is a full-length segment
-        # so the iterative path is visible as a chain of connected steps.
+    for tPath, RPath in trajData:
+        # 2D connected segments: each step moves in both theta AND R space.
         for i in range(len(tPath) - 1):
-            t0, t1 = tPath[i], tPath[i + 1]
-            if abs(t1 - t0) > np.pi:  # skip wrap-around jump
+            if abs(tPath[i + 1] - tPath[i]) > np.pi:  # skip wrap-around
                 continue
             axLeft.plot(
-                [t0, t1], [R, R],
+                [tPath[i], tPath[i + 1]], [RPath[i], RPath[i + 1]],
                 color="white", linewidth=2.0, alpha=0.90,
                 zorder=3, solid_capstyle="round",
             )
-        # Small dots at each step boundary to mark discrete iterations
-        dotThetas = [
-            tPath[i + 1] for i in range(len(tPath) - 1)
+        # Dots at each step boundary
+        validIdx = np.array([
+            i + 1 for i in range(len(tPath) - 1)
             if abs(tPath[i + 1] - tPath[i]) <= np.pi
-        ]
-        if dotThetas:
+        ])
+        if len(validIdx):
             axLeft.scatter(
-                dotThetas, [R] * len(dotThetas),
+                tPath[validIdx], RPath[validIdx],
                 color="white", s=7, zorder=4, alpha=0.70, linewidths=0,
             )
-        # White arrow at midpoint to show descent direction
+        # Directional arrow at midpoint
         midIdx = max(0, len(tPath) // 2 - 1)
         if midIdx + 1 < len(tPath) and abs(tPath[midIdx + 1] - tPath[midIdx]) <= np.pi:
             axLeft.annotate(
                 "",
-                xy=(tPath[midIdx + 1], R),
-                xytext=(tPath[midIdx], R),
+                xy=(tPath[midIdx + 1], RPath[midIdx + 1]),
+                xytext=(tPath[midIdx], RPath[midIdx]),
                 arrowprops=dict(arrowstyle="-|>", color="white", lw=2.0, mutation_scale=14),
                 zorder=5,
             )
@@ -215,6 +242,8 @@ def createHeroVisualization(savePath):
         axRight.plot(err, color=c, linewidth=2.2, label=label)
 
     axRight.set_yscale("log")
+    axRight.set_xlim(0, 300)
+    axRight.set_ylim(bottom=1e-9, top=10.0)
     axRight.set_xlabel("VQE Iteration", fontsize=12)
     axRight.set_ylabel("|E \u2212 E\u2080|  (Hartree)", fontsize=12)
     axRight.set_title("Convergence at Selected Geometries", fontsize=13)
