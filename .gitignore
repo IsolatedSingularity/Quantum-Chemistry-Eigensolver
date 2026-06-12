@@ -1,6 +1,8 @@
 # Personal/private
 abyssalAnchor/
 audit-*.md
+masterContext.md
+issues/
 
 # Python
 __pycache__/
