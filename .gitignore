@@ -46,3 +46,7 @@ Jenova/
 .ruff_cache/
 
 Jenova/
+
+# Kilo Code
+.kilo/node_modules/
+.kilo/worktrees/
