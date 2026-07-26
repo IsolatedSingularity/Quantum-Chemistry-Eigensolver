@@ -1,4 +1,4 @@
-# Personal/private
+﻿# Personal/private
 abyssalAnchor/
 audit-*.md
 masterContext.md
@@ -47,6 +47,9 @@ Jenova/
 
 Jenova/
 
-# Kilo Code
-.kilo/node_modules/
-.kilo/worktrees/
+# Kilo Code / Agent Configuration
+.kilo/
+.kilocodeignore
+AGENTS.md
+Jenova/
+
